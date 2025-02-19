@@ -254,7 +254,8 @@
   <!-- Function to fetch image filenames from your JSON file -->
   <script>
     function fetchImageFilenames(searchKey) {
-      return fetch("https://lasvientuexperimentdata.s3.ap-southeast-1.amazonaws.com/Rendered+Images/filenames.json")
+      // If you're using a relative path and `filenames.json` is in a `data` folder
+      return fetch('data/filenames.json')
         .then(response => {
           if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -262,6 +263,7 @@
           return response.json();
         })
         .then(data => {
+          // Filter the JSON array to only filenames containing `searchKey`
           var matchingFiles = data.filter(file => file.name.indexOf(searchKey) !== -1);
           matchingFiles.sort((a, b) => a.name.localeCompare(b.name));
           return matchingFiles.map(file => file.name);
