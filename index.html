@@ -425,7 +425,7 @@
             var img = new Image();
             img.onload = function () { resolve(img); };
             img.onerror = function () { reject(src); };
-            img.src = "image/";
+            img.src = "image/"+ encodeURIComponent(src);
           });
         }
 
