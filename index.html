@@ -425,7 +425,7 @@
             var img = new Image();
             img.onload = function () { resolve(img); };
             img.onerror = function () { reject(src); };
-            img.src = "image/"+ encodeURIComponent(src);
+            img.src = "image/" + encodeURIComponent(src);
           });
         }
 
@@ -746,7 +746,8 @@
                 var parsed = parseShiftFromFilename(currentFilename);
 
                 try {
-                  jsPsych.data.write({
+                  // Using addDataToLastTrial instead of write
+                  jsPsych.data.addDataToLastTrial({
                     trial_id: searchKey + "_" + phase.label,
                     object: window.selectedObject,
                     group: window.selectedGroupKey,
@@ -831,13 +832,18 @@
                 btn.disabled = true;
                 btn.style.opacity = "0.5";
                 var shiftImg = document.getElementById("exp-shift-image");
+                if (!shiftImg) return; // Exit if element not found
                 shiftImg.style.visibility = "hidden";
                 pauseAwareTimeout(function () {
                   var phase = phases[currentPhaseIndex];
                   if (currentImageIndex < phase.images.length - 1) {
                     currentImageIndex++;
-                    shiftImg.src = phase.images[currentImageIndex].src;
-                    shiftImg.style.visibility = "visible";
+                    // Re-check if shiftImg is still in the DOM
+                    var shiftImg = document.getElementById("exp-shift-image");
+                    if (shiftImg) {
+                      shiftImg.src = phase.images[currentImageIndex].src;
+                      shiftImg.style.visibility = "visible";
+                    }
                     btn.disabled = false;
                     btn.style.opacity = "1";
                     pauseAwareTimeout(advancePhaseImage, 3000);
