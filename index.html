@@ -14,7 +14,6 @@
     p {
       text-align: justify;
     }
-
     /* Style for the university logo in top-left corner */
     .university-logo {
       position: absolute;
@@ -22,7 +21,6 @@
       left: 10px;
       height: 60px;
     }
-
     /* Container for welcome text */
     .welcome-container {
       margin-top: 20px;
@@ -30,7 +28,6 @@
       margin-right: 20px;
       text-align: left;
     }
-
     /* Demo/Experiment images: fill as much of the screen as possible without overflowing */
     .demo-image {
       max-width: 45vw;
@@ -38,7 +35,6 @@
       width: auto;
       height: auto;
     }
-
     /* Styling the YES button for dynamic trials */
     .jspsych-btn {
       font-weight: bold;
@@ -50,11 +46,9 @@
       padding: 10px 20px;
       cursor: pointer;
     }
-
     .jspsych-btn:hover {
       background-color: #45a049;
     }
-
     /* Dedicated container for the YES button (fixed at bottom-right) */
     #yes-button-container {
       position: fixed;
@@ -62,7 +56,6 @@
       right: 40px;
       z-index: 1000;
     }
-
     /* Fullscreen overlay style */
     #fullscreen-overlay {
       position: fixed;
@@ -76,7 +69,6 @@
       align-items: center;
       justify-content: center;
     }
-
     #fullscreen-overlay .prompt-box {
       background-color: white;
       padding: 20px;
@@ -85,7 +77,6 @@
       text-align: center;
       max-width: 90%;
     }
-
     #fullscreen-overlay button {
       font-size: 16px;
       margin: 10px;
@@ -94,11 +85,9 @@
       border-radius: 4px;
       cursor: pointer;
     }
-
     #fullscreen-overlay button:hover {
       opacity: 0.9;
     }
-
     /* Improved Loading Screen Styles */
     .loading-container {
       display: flex;
@@ -369,6 +358,7 @@
 
     /*********************************************************
      * 3) Dynamic Demo Trial (uses static images for demonstration)
+     *     — Now includes checks to prevent errors if the trial has ended.
      *********************************************************/
     var dynamicDemoTrial = {
       type: jsPsychHtmlButtonResponse,
@@ -389,7 +379,7 @@
         var imageFilenames = [];
         var loadingStartTime = Date.now();
         window.currentPhase = null;
-        var trialFinished = false;
+        var trialFinished = false;  // Flag to indicate trial completion
 
         imageFilenames.push("00001_Cube_Center_100_Plain_N0px.png");
         for (var j = 2; j <= numImages; j++) {
@@ -498,14 +488,19 @@
         }
 
         function nextImage() {
+          if (trialFinished) return;  // Do nothing if trial is already finished
           window.currentPhase = "refreshing";
           btn.disabled = true;
           btn.style.opacity = "0.5";
           var shiftImg = document.getElementById("shift-image");
+          if (!shiftImg) return;  // Exit if element not found
           shiftImg.style.visibility = "hidden";
           pauseAwareTimeout(function () {
+            if (trialFinished) return;
             if (currentIndex < demoImages.length - 1) {
               currentIndex++;
+              var shiftImg = document.getElementById("shift-image");
+              if (!shiftImg) return;
               shiftImg.src = demoImages[currentIndex].src;
               shiftImg.style.visibility = "visible";
               btn.disabled = false;
@@ -746,7 +741,6 @@
                 var parsed = parseShiftFromFilename(currentFilename);
 
                 try {
-                  // Using addDataToLastTrial instead of write
                   jsPsych.data.addDataToLastTrial({
                     trial_id: searchKey + "_" + phase.label,
                     object: window.selectedObject,
@@ -832,13 +826,12 @@
                 btn.disabled = true;
                 btn.style.opacity = "0.5";
                 var shiftImg = document.getElementById("exp-shift-image");
-                if (!shiftImg) return; // Exit if element not found
+                if (!shiftImg) return;
                 shiftImg.style.visibility = "hidden";
                 pauseAwareTimeout(function () {
                   var phase = phases[currentPhaseIndex];
                   if (currentImageIndex < phase.images.length - 1) {
                     currentImageIndex++;
-                    // Re-check if shiftImg is still in the DOM
                     var shiftImg = document.getElementById("exp-shift-image");
                     if (shiftImg) {
                       shiftImg.src = phase.images[currentImageIndex].src;
