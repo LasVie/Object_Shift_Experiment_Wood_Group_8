@@ -358,7 +358,7 @@
 
     /*********************************************************
      * 3) Dynamic Demo Trial (uses static images for demonstration)
-     *     — Now includes checks to prevent errors if the trial has ended.
+     *    — Includes checks to cancel further actions once the trial finishes.
      *********************************************************/
     var dynamicDemoTrial = {
       type: jsPsychHtmlButtonResponse,
@@ -480,6 +480,7 @@
               </div>
             </div>
           `;
+          // Show the YES button
           document.getElementById("yes-button-container").style.display = "block";
           btn.style.display = "inline-block";
           btn.disabled = false;
@@ -488,12 +489,13 @@
         }
 
         function nextImage() {
-          if (trialFinished) return;  // Do nothing if trial is already finished
+          // If trial is finished or container is removed, exit.
+          if (trialFinished || !document.getElementById("dynamic-demo-container")) return;
           window.currentPhase = "refreshing";
           btn.disabled = true;
           btn.style.opacity = "0.5";
           var shiftImg = document.getElementById("shift-image");
-          if (!shiftImg) return;  // Exit if element not found
+          if (!shiftImg) return;
           shiftImg.style.visibility = "hidden";
           pauseAwareTimeout(function () {
             if (trialFinished) return;
@@ -519,9 +521,15 @@
         });
 
         function finishTrial() {
+          trialFinished = true;
+          // Remove the YES button and clear the container so no further timeouts will update DOM
           var btn = document.querySelector(".jspsych-btn");
           if (btn && btn.parentNode) {
             btn.parentNode.removeChild(btn);
+          }
+          var cont = document.getElementById("dynamic-demo-container");
+          if (cont) {
+            cont.innerHTML = "";
           }
           var trialData = { chosen_shift: currentIndex };
           jsPsych.finishTrial(trialData);
