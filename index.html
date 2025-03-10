@@ -11,10 +11,18 @@
   <link href="jspsych/dist/jspsych.css" rel="stylesheet" type="text/css" />
 
   <style>
+    /* -----------------------------------------------
+       CSS for your experiment layout & styling
+       ----------------------------------------------- */
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+    }
     p {
       text-align: justify;
     }
-    /* Style for the university logo in top-left corner */
+    /* University logo in top-left corner */
     .university-logo {
       position: absolute;
       top: 10px;
@@ -28,7 +36,7 @@
       margin-right: 20px;
       text-align: left;
     }
-    /* Demo/Experiment images: fill as much of the screen as possible without overflowing */
+    /* Demo/Experiment images: fill screen as possible */
     .demo-image {
       max-width: 45vw;
       max-height: calc(100vh - 150px);
@@ -88,25 +96,21 @@
     #fullscreen-overlay button:hover {
       opacity: 0.9;
     }
-    /* Improved Loading Screen Styles */
+    /* Loading screen styles */
     .loading-container {
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      font-family: Arial, sans-serif;
-      margin-top: 50px;
-    }
-    .loading-container p {
       font-size: 24px;
-      margin-bottom: 10px;
+      margin-top: 50px;
     }
     .progress-bar-container {
       width: 300px;
       height: 20px;
       background-color: #eee;
       border-radius: 10px;
-      margin: 0 auto;
+      margin: 10px auto 0 auto;
       overflow: hidden;
       box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
     }
@@ -121,18 +125,16 @@
 </head>
 
 <body>
-  <!-- Container where the YES button will be dynamically moved -->
+  <!-- The "YES" button will be moved here dynamically -->
   <div id="yes-button-container"></div>
 
   <script>
     /*********************************************************
-     * Global flag to pause the demo/experiment if fullscreen is exited
+     * 1) Global Variables & Utility Functions
      *********************************************************/
     var demoPaused = false;
 
-    /*********************************************************
-     * Pause-aware timeout helper.
-     *********************************************************/
+    // "Pause-aware" timeouts so if user exits fullscreen, we hold the timeline
     function pauseAwareTimeout(callback, delay) {
       setTimeout(function waitForResume() {
         if (demoPaused) {
@@ -143,9 +145,7 @@
       }, delay);
     }
 
-    /*********************************************************
-     * Helper to parse pixel shift from a filename (e.g., "_L25px")
-     *********************************************************/
+    // Parse shift from filename: e.g. "xxx_L25px.png" => { direction: "L", shift: 25 }
     function parseShiftFromFilename(url) {
       var match = url.match(/_(L|R|U|D)(\d+)px/);
       if (!match) {
@@ -157,31 +157,44 @@
       };
     }
 
-    /*********************************************************
-     * Initialize jsPsych
-     *********************************************************/
-    var jsPsych = initJsPsych({
-      override_safe_mode: true,
-      experiment_width: 1000
-    });
+    // We'll fetch from local "data/filenames.json" which lists your S3-based images
+    function fetchImageFilenames(searchKey) {
+      return fetch('data/filenames.json')
+        .then(response => {
+          if (!response.ok) {
+            throw new Error("HTTP error! status: " + response.status);
+          }
+          return response.json();
+        })
+        .then(data => {
+          // Filter matching files
+          var matchingFiles = data.filter(file => file.name.indexOf(searchKey) !== -1);
+          matchingFiles.sort((a, b) => a.name.localeCompare(b.name));
+          return matchingFiles.map(file => file.name);
+        });
+    }
 
     /*********************************************************
-     * Full Screen Change Listener + Overlay
+     * 2) Fullscreen Change Listener
+     *    If user exits fullscreen, show overlay
      *********************************************************/
     document.addEventListener("fullscreenchange", function () {
       if (!document.fullscreenElement) {
         demoPaused = true;
         var overlay = document.createElement("div");
         overlay.id = "fullscreen-overlay";
+
         var promptBox = document.createElement("div");
         promptBox.className = "prompt-box";
+
         var message = document.createElement("p");
         message.innerHTML = `
           You have exited full screen mode.<br><br>
-          Press <strong>Resume</strong> to re-enter full screen, or 
-          <strong>Quit</strong> to return to the main screen (all progress lost!).
+          Press <strong>Resume</strong> to re-enter full screen,
+          or <strong>Quit</strong> to reload the page (progress lost).
         `;
         promptBox.appendChild(message);
+
         var btnQuit = document.createElement("button");
         btnQuit.textContent = "Quit";
         btnQuit.style.backgroundColor = "#d9534f";
@@ -192,6 +205,7 @@
           }
           window.location.reload();
         };
+
         var btnResume = document.createElement("button");
         btnResume.textContent = "Resume";
         btnResume.style.backgroundColor = "#5cb85c";
@@ -206,22 +220,32 @@
               jsPsych.resumeExperiment();
             }
           }).catch(function (err) {
-            console.error("Error re-entering full screen:", err);
+            console.error("Error re-entering fullscreen:", err);
           });
         };
+
         promptBox.appendChild(btnQuit);
         promptBox.appendChild(btnResume);
         overlay.appendChild(promptBox);
         document.body.appendChild(overlay);
+
         if (typeof jsPsych.pauseExperiment === "function") {
           jsPsych.pauseExperiment();
         }
       }
     });
-  </script>
 
-  <!-- Script for object & group definitions and helper functions -->
-  <script>
+    /*********************************************************
+     * 3) Initialize jsPsych
+     *********************************************************/
+    var jsPsych = initJsPsych({
+      override_safe_mode: true,
+      experiment_width: 1000
+    });
+
+    /*********************************************************
+     * 4) Define Data Structures for Random Group & Object
+     *********************************************************/
     var objectNames = [
       "BookShelves", "Chess", "City", "FoodPlatter", "Fruits",
       "HummingBird", "Plant", "Swing", "Vase", "Wood"
@@ -238,30 +262,9 @@
     function getRandomElement(arr) {
       return arr[Math.floor(Math.random() * arr.length)];
     }
-  </script>
 
-  <!-- Function to fetch image filenames from your JSON file -->
-  <script>
-    function fetchImageFilenames(searchKey) {
-      return fetch('data/filenames.json')
-        .then(response => {
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-          }
-          return response.json();
-        })
-        .then(data => {
-          var matchingFiles = data.filter(file => file.name.indexOf(searchKey) !== -1);
-          matchingFiles.sort((a, b) => a.name.localeCompare(b.name));
-          return matchingFiles.map(file => file.name);
-        });
-    }
-  </script>
-
-  <!-- Define jsPsych timeline components -->
-  <script>
     /*********************************************************
-     * 1) Welcome Page
+     * 5) Welcome Page
      *********************************************************/
     var welcomePage = {
       type: jsPsychHtmlButtonResponse,
@@ -295,15 +298,16 @@
       },
       on_finish: function () {
         if (!document.fullscreenElement) {
+          // Attempt fullscreen
           document.documentElement.requestFullscreen().catch(function (err) {
-            console.error("Error attempting to enable full-screen mode:", err);
+            console.error("Error attempting fullscreen:", err);
           });
         }
       }
     };
 
     /*********************************************************
-     * 2) Demo Instructions Page
+     * 6) Demo Instructions Page
      *********************************************************/
     var demoPage = {
       type: jsPsychHtmlButtonResponse,
@@ -332,15 +336,15 @@
               detection. If you do not notice a change, it will keep updating until the final image.
             </p>
             <p>
-              <strong>Note:</strong> Quitting the experiment at any point will erase all progress!
+              <strong>Note:</strong> Quitting the experiment at any point will erase all progress.
             </p>
             <p>
-              Please confirm you have read these instructions.
+              Please confirm you have read these instructions:
             </p>
-          </div>
-          <div style="margin-top: 10px; font-size: 14px;">
-            <input type="checkbox" id="demo-confirm" name="demo-confirm">
-            <label for="demo-confirm">I have read and understood the instructions.</label>
+            <p>
+              <input type="checkbox" id="demo-confirm" name="demo-confirm">
+              <label for="demo-confirm">I have read and understood the instructions.</label>
+            </p>
           </div>
         </div>
       `,
@@ -355,7 +359,7 @@
     };
 
     /*********************************************************
-     * 3) Dynamic Demo Trial (uses static images for demonstration)
+     * 7) Dynamic Demo Trial
      *********************************************************/
     var dynamicDemoTrial = {
       type: jsPsychHtmlButtonResponse,
@@ -375,10 +379,11 @@
         var demoImages = [];
         var imageFilenames = [];
         var loadingStartTime = Date.now();
-        window.currentPhase = null;
         var trialFinished = false;
 
+        // Reference
         imageFilenames.push("00001_Cube_Center_100_Plain_N0px.png");
+        // Shifts from 2..31
         for (var j = 2; j <= numImages; j++) {
           var shift = j - 1;
           var padded = (j < 10) ? "0000" + j : "000" + j;
@@ -386,6 +391,7 @@
           imageFilenames.push(filename);
         }
 
+        // Loading screen
         var loadingScreenTimeout = setTimeout(function () {
           container.innerHTML = `
             <div class="loading-container">
@@ -407,6 +413,7 @@
           }, 100);
         }, 100);
 
+        // Helper to load images
         function loadImage(src) {
           return new Promise(function (resolve, reject) {
             var img = new Image();
@@ -416,6 +423,7 @@
           });
         }
 
+        // Load all images for the demo
         Promise.all(imageFilenames.map(loadImage)).then(function (images) {
           demoImages = images;
           var loadingDuration = Date.now() - loadingStartTime;
@@ -429,8 +437,8 @@
           container.innerHTML = "<p>Error loading image: " + err + "</p>";
         });
 
+        // Countdown before the demo
         function startCountdown() {
-          window.currentPhase = "countdown";
           btn.style.display = "none";
           container.innerHTML = `
             <div id="demo-header" style="text-align: center; margin-top: 10px;">
@@ -459,7 +467,6 @@
 
         var currentIndex = 1;
         function startDemo() {
-          window.currentPhase = "demo";
           container.innerHTML = `
             <div id="demo-header" style="text-align: center; margin-top: 10px;">
               <h3 style="margin: 0 0 10px 0;">
@@ -477,7 +484,6 @@
               </div>
             </div>
           `;
-          // Show the YES button
           document.getElementById("yes-button-container").style.display = "block";
           btn.style.display = "inline-block";
           btn.disabled = false;
@@ -486,8 +492,7 @@
         }
 
         function nextImage() {
-          if (trialFinished || !document.getElementById("dynamic-demo-container")) return;
-          window.currentPhase = "refreshing";
+          if (trialFinished) return;
           btn.disabled = true;
           btn.style.opacity = "0.5";
           var shiftImg = document.getElementById("shift-image");
@@ -497,8 +502,6 @@
             if (trialFinished) return;
             if (currentIndex < demoImages.length - 1) {
               currentIndex++;
-              var shiftImg = document.getElementById("shift-image");
-              if (!shiftImg) return;
               shiftImg.src = demoImages[currentIndex].src;
               shiftImg.style.visibility = "visible";
               btn.disabled = false;
@@ -518,7 +521,6 @@
 
         function finishTrial() {
           trialFinished = true;
-          // Remove the YES button
           var btnEl = document.querySelector(".jspsych-btn");
           if (btnEl && btnEl.parentNode) {
             btnEl.parentNode.removeChild(btnEl);
@@ -527,14 +529,13 @@
           if (cont) {
             cont.innerHTML = "";
           }
-          var trialData = { chosen_shift: currentIndex };
-          jsPsych.finishTrial(trialData);
+          jsPsych.finishTrial({ chosen_shift: currentIndex });
         }
       }
     };
 
     /*********************************************************
-     * 4) Demo Completion Page
+     * 8) Demo Completion Page
      *********************************************************/
     var demoCompleteTrial = {
       type: jsPsychHtmlButtonResponse,
@@ -553,16 +554,28 @@
       `,
       choices: ['Redo DEMO', 'START ACTUAL EXPERIMENT'],
       on_finish: function (data) {
-        // The demo timeline’s loop_function will check data.response.
+        // We'll check data.response to see if user wants to redo the demo or proceed
+        // => In the timeline loop_function, we'll decide
+      }
+    };
+
+    // We'll loop the demo if user chooses "Redo DEMO" (i.e. response=0)
+    var demoTimeline = {
+      timeline: [demoPage, dynamicDemoTrial, demoCompleteTrial],
+      loop_function: function (data) {
+        var last_trial = data.values()[data.values().length - 1];
+        // If user clicked "Redo DEMO" (choices array => index 0)
+        return last_trial.response === 0;
       }
     };
 
     /*********************************************************
-     * 5) Dynamic Experiment Instructions Page
+     * 9) Actual Experiment Instructions
      *********************************************************/
     var experimentInstructions = {
       type: jsPsychHtmlButtonResponse,
       stimulus: function() {
+        // Randomly pick an object and group
         window.selectedObject = getRandomElement(objectNames);
         window.selectedGroupKey = getRandomElement(Object.keys(groups));
         var props = groups[window.selectedGroupKey];
@@ -576,8 +589,8 @@
               You will perform <strong>${setsCount} set${setsCount > 1 ? 's' : ''}</strong> of experiments.
             </p>
             <p>
-              In each set, the same salient object will be used. The object will shift in 4 directions –
-              Left, Right, Up, and Down. After each directional shift, please press <strong>YES</strong>
+              In each set, the same salient object will be used. The object will shift in 4 directions – 
+              Left, Right, Up, and Down. After each directional shift, please press <strong>YES</strong> 
               once you observe a difference.
             </p>
             <p>Once ready, please press START.</p>
@@ -588,7 +601,7 @@
     };
 
     /*********************************************************
-     * 6) Multi-Key Actual Experiment Trial
+     * 10) Multi-Key Actual Experiment Trial
      *********************************************************/
     var multiKeyExperimentTrial = {
       type: jsPsychHtmlButtonResponse,
@@ -596,24 +609,20 @@
       choices: ['YES'],
       response_ends_trial: false,
       on_load: function () {
+        // Move the YES button into a fixed container
         var btn = document.querySelector(".jspsych-btn");
-        if (!btn) {
-          btn = document.createElement("button");
-          btn.className = "jspsych-btn";
-          btn.textContent = "YES";
-        }
         var yesBtnContainer = document.getElementById('yes-button-container');
         yesBtnContainer.appendChild(btn);
         yesBtnContainer.style.display = "none";
         btn.style.display = "none";
 
         var container = document.getElementById("actual-exp-container");
-
         var properties = groups[window.selectedGroupKey];
         var experimentResults = [];
 
         function runExperimentForProperty(index) {
           if (index >= properties.length) {
+            // All properties done
             if (btn.parentNode) {
               btn.parentNode.removeChild(btn);
             }
@@ -668,12 +677,14 @@
               return;
             }
 
+            // We expect 121 images => first is original, next 30 left, 30 right, 30 up, 30 down
             if (fileNames.length < 121) {
               container.innerHTML = "<p>Expected 121 images for key: " + searchKey + ", but got " + fileNames.length + ".</p>";
               callback({}, fileNames);
               return;
             }
 
+            // Sort by prefix (e.g. 00001, 00002, etc.)
             fileNames.sort(function(a, b) {
               var indexA = parseInt(a.slice(0, 5), 10);
               var indexB = parseInt(b.slice(0, 5), 10);
@@ -682,16 +693,10 @@
 
             fileNames = fileNames.slice(0, 121);
             var originalFilename = fileNames[0];
-            var leftFilenames = fileNames.slice(1, 31);
-            var rightFilenames = fileNames.slice(31, 61);
-            var upFilenames = fileNames.slice(61, 91);
-            var downFilenames = fileNames.slice(91, 121);
-
-            var allFilenames = [originalFilename]
-              .concat(leftFilenames)
-              .concat(rightFilenames)
-              .concat(upFilenames)
-              .concat(downFilenames);
+            var leftFilenames   = fileNames.slice(1, 31);
+            var rightFilenames  = fileNames.slice(31, 61);
+            var upFilenames     = fileNames.slice(61, 91);
+            var downFilenames   = fileNames.slice(91, 121);
 
             var baseImageURL = "https://lasvientuexperimentdata.s3.ap-southeast-1.amazonaws.com/Rendered+Images/";
             function loadImage(src) {
@@ -703,23 +708,31 @@
               });
             }
 
+            // Preload all images
+            var allFilenames = [originalFilename]
+              .concat(leftFilenames)
+              .concat(rightFilenames)
+              .concat(upFilenames)
+              .concat(downFilenames);
+
             Promise.all(allFilenames.map(loadImage)).then(function(loadedImages) {
               var imageMap = {};
               for (var i = 0; i < allFilenames.length; i++) {
                 imageMap[allFilenames[i]] = loadedImages[i];
               }
               var originalImage = imageMap[originalFilename];
-              var leftImages = leftFilenames.map(fn => imageMap[fn]);
+              var leftImages  = leftFilenames.map(fn => imageMap[fn]);
               var rightImages = rightFilenames.map(fn => imageMap[fn]);
-              var upImages = upFilenames.map(fn => imageMap[fn]);
-              var downImages = downFilenames.map(fn => imageMap[fn]);
+              var upImages    = upFilenames.map(fn => imageMap[fn]);
+              var downImages  = downFilenames.map(fn => imageMap[fn]);
 
               var phases = [
-                { direction: "L", label: "LEFT", images: leftImages },
+                { direction: "L", label: "LEFT",  images: leftImages },
                 { direction: "R", label: "RIGHT", images: rightImages },
-                { direction: "U", label: "UP", images: upImages },
-                { direction: "D", label: "DOWN", images: downImages }
+                { direction: "U", label: "UP",    images: upImages },
+                { direction: "D", label: "DOWN",  images: downImages }
               ];
+
               var currentPhaseIndex = 0;
               var currentImageIndex = 0;
               var phaseResults = {};
@@ -728,6 +741,7 @@
               btn.disabled = true;
               btn.style.opacity = "0.5";
 
+              // Handler for clicking "YES" mid-phase
               var yesHandler = function () {
                 if (btn.disabled) return;
                 var phase = phases[currentPhaseIndex];
@@ -735,6 +749,7 @@
                 var currentFilename = currentImg.src;
                 var parsed = parseShiftFromFilename(currentFilename);
 
+                // Store data in jsPsych
                 try {
                   jsPsych.data.addDataToLastTrial({
                     trial_id: searchKey + "_" + phase.label,
@@ -765,7 +780,9 @@
                 var phase = phases[currentPhaseIndex];
                 container.innerHTML = `
                   <div id="exp-header" style="text-align: center; margin-top: 10px;">
-                    <h3 style="margin: 0 0 10px 0;">Saliency object will be moving <span style="font-size:1.5em; text-decoration: underline;">${phase.label}</span></h3>
+                    <h3 style="margin: 0 0 10px 0;">
+                      Saliency object will be moving <span style="font-size:1.5em; text-decoration: underline;">${phase.label}</span>
+                    </h3>
                     <h3 id="exp-countdown" style="font-size:72px; font-weight:bold; margin:100px;">3</h3>
                   </div>
                 `;
@@ -799,7 +816,9 @@
                 var phase = phases[currentPhaseIndex];
                 container.innerHTML = `
                   <div id="exp-header" style="text-align: center; margin-top: 10px;">
-                    <h3 style="margin: 0 0 10px 0;">Saliency object will be moving <span style="font-size:1.5em; text-decoration: underline;">${phase.label}</span></h3>
+                    <h3 style="margin: 0 0 10px 0;">
+                      Saliency object will be moving <span style="font-size:1.5em; text-decoration: underline;">${phase.label}</span>
+                    </h3>
                   </div>
                   <div id="exp-content" style="display: flex; justify-content: center; align-items: center;">
                     <div style="margin: 5px; text-align: center;">
@@ -848,6 +867,7 @@
                 if (currentPhaseIndex < phases.length) {
                   startPhaseCountdown();
                 } else {
+                  // remove the click listener for "YES"
                   btn.removeEventListener("click", yesHandler);
                   callback(phaseResults, {
                     original: originalFilename,
@@ -871,42 +891,35 @@
     };
 
     /*********************************************************
-     * 7) Final "Thank You" + Data Submission (JSONP version)
+     * 11) Final "Thank You" + Data Submission via JSONP
      *********************************************************/
 
-    // We'll define a simple callback name
-    var JSONP_CALLBACK_NAME = "myJsonpCallback";
+    // 1. Define the JSONP callback function that Apps Script will call
+    function myJsonpCallback(response) {
+      console.log("JSONP response from Apps Script:", response);
+      alert("Data submission status: " + response.status);
+    }
 
-    // This function is how we do the actual "GET" + JSONP
+    // 2. Function to insert a <script> tag with ?data=...&callback=...
     function sendDataAsJSONP(finalData) {
-      // Convert entire data array to a JSON string
+      // Convert entire data store to JSON
       var jsonString = JSON.stringify(finalData);
-
-      // WARNING: If jsonString is huge, this might exceed URL length limits
       var encoded = encodeURIComponent(jsonString);
 
-      // This is your Google Apps Script Web App URL (doGet)
-      var googleScriptURL = "https://script.google.com/macros/s/AKfycbwNvK9VWDNCVjzz1uMu1d2IQ7_lhHwm0a9w-X3f_HeV1hsEX1asH-ienfFoqoOrF8_eGA/exec";
+      // REPLACE with your own deployed Apps Script Web App URL:
+      var googleScriptURL = "https://script.google.com/macros/s/YOUR_WEB_APP_ID/exec";
 
-      // Build the query string, including a `callback` parameter
-      var scriptUrl = googleScriptURL + "?data=" + encoded + "&callback=" + JSONP_CALLBACK_NAME;
+      // Add callback param => "myJsonpCallback"
+      var scriptUrl = googleScriptURL + "?data=" + encoded + "&callback=myJsonpCallback";
 
-      // Create a <script> tag to load it
+      // Create <script> tag
       var scriptEl = document.createElement("script");
       scriptEl.src = scriptUrl;
 
-      // Define the callback function on the window object
-      window[JSONP_CALLBACK_NAME] = function(response) {
-        console.log("JSONP response from Apps Script:", response);
-        // You can display a final "submission successful" message or similar here
-        alert("Data submission status: " + response.status);
-      };
-
-      // Insert the <script> into DOM => triggers the request
+      // Insert into DOM => triggers JSONP request
       document.body.appendChild(scriptEl);
     }
 
-    // The final trial that calls JSONP
     var finalSubmissionTrial = {
       type: jsPsychHtmlButtonResponse,
       stimulus: `
@@ -919,31 +932,31 @@
       choices: ['Submit Data'],
       on_finish: function() {
         var finalData = jsPsych.data.get().values();
-        // Instead of fetch/POST, do JSONP
         sendDataAsJSONP(finalData);
       }
     };
 
     /*********************************************************
-     * Build the master timeline
+     * 12) Build the master timeline & run jsPsych
      *********************************************************/
     var timeline = [];
 
+    // 1) Welcome
     timeline.push(welcomePage);
 
-    var demoTimeline = {
-      timeline: [demoPage, dynamicDemoTrial, demoCompleteTrial],
-      loop_function: function (data) {
-        var last_trial = data.values()[data.values().length - 1];
-        return last_trial.response === 0;
-      }
-    };
+    // 2) DEMO (with potential loop if user chooses "Redo DEMO")
     timeline.push(demoTimeline);
 
+    // 3) Actual experiment instructions
     timeline.push(experimentInstructions);
+
+    // 4) Multi-key trial
     timeline.push(multiKeyExperimentTrial);
+
+    // 5) Final submission
     timeline.push(finalSubmissionTrial);
 
+    // Start the experiment
     jsPsych.run(timeline);
   </script>
 </body>
