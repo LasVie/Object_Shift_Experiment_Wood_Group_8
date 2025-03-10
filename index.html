@@ -243,7 +243,6 @@
   <!-- Function to fetch image filenames from your JSON file -->
   <script>
     function fetchImageFilenames(searchKey) {
-      // If you're using a relative path and `filenames.json` is in a `data` folder
       return fetch('data/filenames.json')
         .then(response => {
           if (!response.ok) {
@@ -252,7 +251,6 @@
           return response.json();
         })
         .then(data => {
-          // Filter the JSON array to only filenames containing `searchKey`
           var matchingFiles = data.filter(file => file.name.indexOf(searchKey) !== -1);
           matchingFiles.sort((a, b) => a.name.localeCompare(b.name));
           return matchingFiles.map(file => file.name);
@@ -358,7 +356,6 @@
 
     /*********************************************************
      * 3) Dynamic Demo Trial (uses static images for demonstration)
-     *    — Includes checks to cancel further actions once the trial finishes.
      *********************************************************/
     var dynamicDemoTrial = {
       type: jsPsychHtmlButtonResponse,
@@ -379,7 +376,7 @@
         var imageFilenames = [];
         var loadingStartTime = Date.now();
         window.currentPhase = null;
-        var trialFinished = false;  // Flag to indicate trial completion
+        var trialFinished = false;
 
         imageFilenames.push("00001_Cube_Center_100_Plain_N0px.png");
         for (var j = 2; j <= numImages; j++) {
@@ -489,7 +486,6 @@
         }
 
         function nextImage() {
-          // If trial is finished or container is removed, exit.
           if (trialFinished || !document.getElementById("dynamic-demo-container")) return;
           window.currentPhase = "refreshing";
           btn.disabled = true;
@@ -522,10 +518,10 @@
 
         function finishTrial() {
           trialFinished = true;
-          // Remove the YES button and clear the container so no further timeouts will update DOM
-          var btn = document.querySelector(".jspsych-btn");
-          if (btn && btn.parentNode) {
-            btn.parentNode.removeChild(btn);
+          // Remove the YES button
+          var btnEl = document.querySelector(".jspsych-btn");
+          if (btnEl && btnEl.parentNode) {
+            btnEl.parentNode.removeChild(btnEl);
           }
           var cont = document.getElementById("dynamic-demo-container");
           if (cont) {
@@ -563,7 +559,6 @@
 
     /*********************************************************
      * 5) Dynamic Experiment Instructions Page
-     *    (Randomly pick the group & object, show how many sets)
      *********************************************************/
     var experimentInstructions = {
       type: jsPsychHtmlButtonResponse,
@@ -594,8 +589,6 @@
 
     /*********************************************************
      * 6) Multi-Key Actual Experiment Trial
-     *    - For each property in the selected group, run 4 directions
-     *    - Record data each time user presses YES
      *********************************************************/
     var multiKeyExperimentTrial = {
       type: jsPsychHtmlButtonResponse,
@@ -603,7 +596,6 @@
       choices: ['YES'],
       response_ends_trial: false,
       on_load: function () {
-        // Try to get the default YES button. If not found, create one.
         var btn = document.querySelector(".jspsych-btn");
         if (!btn) {
           btn = document.createElement("button");
@@ -618,10 +610,6 @@
         var container = document.getElementById("actual-exp-container");
 
         var properties = groups[window.selectedGroupKey];
-        console.log("Selected object:", window.selectedObject);
-        console.log("Selected group:", window.selectedGroupKey);
-        console.log("Properties:", properties);
-
         var experimentResults = [];
 
         function runExperimentForProperty(index) {
@@ -639,7 +627,6 @@
           }
           var selectedProperty = properties[index];
           var searchKey = window.selectedObject + "_" + selectedProperty;
-          console.log("Running experiment for key:", searchKey);
           runDirectionalExperiment(searchKey, selectedProperty, function(phaseResults, filenames) {
             experimentResults.push({
               property: selectedProperty,
@@ -873,7 +860,6 @@
               }
 
               startPhaseCountdown();
-
             }).catch(function (err) {
               container.innerHTML = "<p>Error loading images: " + err + "</p>";
             });
@@ -885,41 +871,56 @@
     };
 
     /*********************************************************
-     * 7) Final "Thank You" + Data Submission
-     *    - Only reached if user completes entire experiment
-     *    - Post the data to a Google Sheet via your Google Apps Script Web App
+     * 7) Final "Thank You" + Data Submission (JSONP version)
      *********************************************************/
+
+    // We'll define a simple callback name
+    var JSONP_CALLBACK_NAME = "myJsonpCallback";
+
+    // This function is how we do the actual "GET" + JSONP
+    function sendDataAsJSONP(finalData) {
+      // Convert entire data array to a JSON string
+      var jsonString = JSON.stringify(finalData);
+
+      // WARNING: If jsonString is huge, this might exceed URL length limits
+      var encoded = encodeURIComponent(jsonString);
+
+      // This is your Google Apps Script Web App URL (doGet)
+      var googleScriptURL = "https://script.google.com/macros/s/AKfycbxQE6alTukjtOisBmt-vwmoOs0oszut9XipnuR7k-QHpOHQY5dSWeZHKJnu7JGcC_wH4g/exec";
+
+      // Build the query string, including a `callback` parameter
+      var scriptUrl = googleScriptURL + "?data=" + encoded + "&callback=" + JSONP_CALLBACK_NAME;
+
+      // Create a <script> tag to load it
+      var scriptEl = document.createElement("script");
+      scriptEl.src = scriptUrl;
+
+      // Define the callback function on the window object
+      window[JSONP_CALLBACK_NAME] = function(response) {
+        console.log("JSONP response from Apps Script:", response);
+        // You can display a final "submission successful" message or similar here
+        alert("Data submission status: " + response.status);
+      };
+
+      // Insert the <script> into DOM => triggers the request
+      document.body.appendChild(scriptEl);
+    }
+
+    // The final trial that calls JSONP
     var finalSubmissionTrial = {
       type: jsPsychHtmlButtonResponse,
       stimulus: `
         <div style="text-align:center;">
           <h2>Thank you!</h2>
           <p>You have completed the entire experiment.</p>
-          <p>Please click the button below to submit your data.</p>
+          <p>Please click the button below to submit your data (via JSONP).</p>
         </div>
       `,
       choices: ['Submit Data'],
       on_finish: function() {
-        // Collect jsPsych data as an array/objects
         var finalData = jsPsych.data.get().values();
-
-        // Replace this with your own Google Apps Script URL
-        var googleScriptURL = "https://script.google.com/macros/s/AKfycbxQE6alTukjtOisBmt-vwmoOs0oszut9XipnuR7k-QHpOHQY5dSWeZHKJnu7JGcC_wH4g/exec";
-        
-        fetch(googleScriptURL, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify(finalData)
-        })
-        .then(response => response.text())
-        .then(result => {
-          console.log("Data posted successfully:", result);
-        })
-        .catch(error => {
-          console.error("Error posting data:", error);
-        });
+        // Instead of fetch/POST, do JSONP
+        sendDataAsJSONP(finalData);
       }
     };
 
