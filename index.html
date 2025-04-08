@@ -324,12 +324,10 @@
           <h3 style="margin-bottom: 5px;">DEMO: The shifted image will move <b>to the left</b></h3>
           <div style="display: flex; justify-content: center; align-items: center; margin-top: 10px;">
             <div style="margin: 5px; text-align: center;">
-              <!-- Updated to "100" instead of "100%" in the file name -->
               <img src="image/00001_Cube_Center_100_Plain_N0px.png" alt="Reference Image" style="width: 300px; height: auto;"><br>
               <span>Reference Image</span>
             </div>
             <div style="margin: 5px; text-align: center;">
-              <!-- Updated to "100" instead of "100%" in the file name -->
               <img src="image/00031_Cube_Center_100_Plain_L30px.png" alt="Shifted Image" style="width: 300px; height: auto;"><br>
               <span>Shifted Image</span>
             </div>
@@ -392,13 +390,9 @@
         var trialFinished = false;
 
         // For the demo, we replaced "100%_Plain" with "100_Plain"
-        // We generate 31 images from 1..31, prefix with leading zeros, and shift L x px
-        // The first file is the "N0px" reference:
         imageFilenames.push("00001_Cube_Center_100_Plain_N0px.png");
-        // Then the next 30 are L1px, L2px, ... L30px
         for (var j = 2; j <= numImages; j++) {
-          var shift = j - 1; // e.g. j=2 => shift=1, up to j=31 => shift=30
-          // Create the zero-padded index:
+          var shift = j - 1; // from 1..30
           var padded = (j < 10) ? "0000" + j : "000" + j;
           var filename = padded + "_Cube_Center_100_Plain_L" + shift + "px.png";
           imageFilenames.push(filename);
@@ -683,7 +677,7 @@
               return;
             }
 
-            // We now expect at least 401 (1 reference + 4×100) for the new 100-px setup
+            // We now expect at least 401 (1 reference + 4×100) for the 100-px setup
             if (fileNames.length < 401) {
               container.innerHTML = "<p>Expected ≥ 401 images for key: " + searchKey + ", but got " + fileNames.length + ".</p>";
               callback({}, fileNames);
@@ -702,13 +696,12 @@
             var upFilenamesAll = fileNames.slice(201, 301);
             var downFilenamesAll = fileNames.slice(301, 401);
 
-            // Filter them to keep only shifts of 2, 4, 6, ... 100 (i.e. i%2==1 => shift=2,4,6,...,100)
+            // Filter them to keep only shifts of 2, 4, 6, ... 100 => i%2==1
             var leftFilenames = leftFilenamesAll.filter((_, i) => i % 2 === 1);
             var rightFilenames = rightFilenamesAll.filter((_, i) => i % 2 === 1);
             var upFilenames = upFilenamesAll.filter((_, i) => i % 2 === 1);
             var downFilenames = downFilenamesAll.filter((_, i) => i % 2 === 1);
 
-            // Combine all we need to load
             var allFilenames = [originalFilename]
               .concat(leftFilenames)
               .concat(rightFilenames)
@@ -746,7 +739,6 @@
               var currentImageIndex = 0;
               var phaseResults = {};
 
-              // Hide YES button until phase countdown finishes
               btn.style.display = "none";
               btn.disabled = true;
               btn.style.opacity = "0.5";
@@ -867,7 +859,6 @@
                 if (currentPhaseIndex < phases.length) {
                   startPhaseCountdown();
                 } else {
-                  // Remove the click handler so it doesn't accumulate multiple times
                   btn.removeEventListener("click", yesHandler);
                   callback(phaseResults, {
                     original: originalFilename,
@@ -892,9 +883,7 @@
     };
 
     /*********************************************************
-     * 7) Final "Thank You" + Data Submission
-     *    - Only reached if user completes entire experiment
-     *    - Post the data to a Google Sheet via your Google Apps Script Web App
+     * 7) Final "Thank You" + Data Submission (AWS -> Lambda -> DynamoDB)
      *********************************************************/
     var finalSubmissionTrial = {
       type: jsPsychHtmlButtonResponse,
@@ -907,25 +896,28 @@
       `,
       choices: ['Submit Data'],
       on_finish: function() {
-        // Collect jsPsych data as an array/objects
+        // 1) Collect jsPsych data as an array of objects
         var finalData = jsPsych.data.get().values();
 
-        // Replace this with your own Google Apps Script URL
-        var googleScriptURL = "https://script.google.com/macros/s/AKfycbyYi-Q8U5wFm892ZY3wC9oh3hcnlSI7Z7l84RFtOXqSj9tBvgDUSqtXmJ3Ajpfep1Fbrg/exec";
-        
-        fetch(googleScriptURL, {
+        // 2) Replace with YOUR actual AWS endpoint from API Gateway
+        var AWS_ENDPOINT = "https://abc123xyz.execute-api.us-east-1.amazonaws.com/storedata";
+
+        // 3) Post the data to AWS
+        fetch(AWS_ENDPOINT, {
           method: "POST",
           headers: {
             "Content-Type": "application/json"
           },
           body: JSON.stringify(finalData)
         })
-        .then(response => response.text())
+        .then(response => response.json())
         .then(result => {
           console.log("Data posted successfully:", result);
+          // You can display a success message, redirect, etc.
         })
         .catch(error => {
           console.error("Error posting data:", error);
+          // You could show an error message or handle gracefully.
         });
       }
     };
@@ -938,7 +930,7 @@
     // 1) The Welcome Page
     timeline.push(welcomePage);
 
-    // 2) The Demo: repeated if user presses "Redo DEMO"
+    // 2) The Demo: repeated if user presses "Redo DEMO" (response=0)
     var demoTimeline = {
       timeline: [demoPage, dynamicDemoTrial, demoCompleteTrial],
       loop_function: function (data) {
@@ -955,9 +947,10 @@
     // 4) Actual Experiment multi-key trial
     timeline.push(multiKeyExperimentTrial);
 
-    // 5) Final submission
+    // 5) Final submission (to AWS)
     timeline.push(finalSubmissionTrial);
 
+    // Run jsPsych
     jsPsych.run(timeline);
   </script>
 </body>
