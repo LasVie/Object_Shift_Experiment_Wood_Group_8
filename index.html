@@ -324,10 +324,12 @@
           <h3 style="margin-bottom: 5px;">DEMO: The shifted image will move <b>to the left</b></h3>
           <div style="display: flex; justify-content: center; align-items: center; margin-top: 10px;">
             <div style="margin: 5px; text-align: center;">
+              <!-- Updated to "100" instead of "100%" in the file name -->
               <img src="image/00001_Cube_Center_100_Plain_N0px.png" alt="Reference Image" style="width: 300px; height: auto;"><br>
               <span>Reference Image</span>
             </div>
             <div style="margin: 5px; text-align: center;">
+              <!-- Updated to "100" instead of "100%" in the file name -->
               <img src="image/00031_Cube_Center_100_Plain_L30px.png" alt="Shifted Image" style="width: 300px; height: auto;"><br>
               <span>Shifted Image</span>
             </div>
@@ -389,10 +391,14 @@
         window.currentPhase = null;
         var trialFinished = false;
 
-        // Demo uses 31 images (shift = 0 through 30)
+        // For the demo, we replaced "100%_Plain" with "100_Plain"
+        // We generate 31 images from 1..31, prefix with leading zeros, and shift L x px
+        // The first file is the "N0px" reference:
         imageFilenames.push("00001_Cube_Center_100_Plain_N0px.png");
+        // Then the next 30 are L1px, L2px, ... L30px
         for (var j = 2; j <= numImages; j++) {
-          var shift = j - 1;
+          var shift = j - 1; // e.g. j=2 => shift=1, up to j=31 => shift=30
+          // Create the zero-padded index:
           var padded = (j < 10) ? "0000" + j : "000" + j;
           var filename = padded + "_Cube_Center_100_Plain_L" + shift + "px.png";
           imageFilenames.push(filename);
@@ -696,9 +702,7 @@
             var upFilenamesAll = fileNames.slice(201, 301);
             var downFilenamesAll = fileNames.slice(301, 401);
 
-            // Filter them to keep only shifts of 2, 4, 6, ... 100 (which is effectively every other index)
-            // i=0 => shift=1, i=1 => shift=2, i=2 => shift=3, i=3 => shift=4, ...
-            // So we want i=1,3,5,... which is i % 2===1 in zero-based indexing.
+            // Filter them to keep only shifts of 2, 4, 6, ... 100 (i.e. i%2==1 => shift=2,4,6,...,100)
             var leftFilenames = leftFilenamesAll.filter((_, i) => i % 2 === 1);
             var rightFilenames = rightFilenamesAll.filter((_, i) => i % 2 === 1);
             var upFilenames = upFilenamesAll.filter((_, i) => i % 2 === 1);
@@ -931,21 +935,27 @@
      *********************************************************/
     var timeline = [];
 
+    // 1) The Welcome Page
     timeline.push(welcomePage);
 
-    // Demo timeline (redo if user chooses 'Redo DEMO')
+    // 2) The Demo: repeated if user presses "Redo DEMO"
     var demoTimeline = {
       timeline: [demoPage, dynamicDemoTrial, demoCompleteTrial],
       loop_function: function (data) {
         var last_trial = data.values()[data.values().length - 1];
-        // If user pressed "Redo DEMO" (response=0) then repeat the timeline
+        // If user pressed "Redo DEMO" => response=0 => repeat
         return last_trial.response === 0;
       }
     };
     timeline.push(demoTimeline);
 
+    // 3) Actual Experiment instructions
     timeline.push(experimentInstructions);
+
+    // 4) Actual Experiment multi-key trial
     timeline.push(multiKeyExperimentTrial);
+
+    // 5) Final submission
     timeline.push(finalSubmissionTrial);
 
     jsPsych.run(timeline);
