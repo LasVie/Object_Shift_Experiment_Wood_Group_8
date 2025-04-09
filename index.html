@@ -399,19 +399,20 @@
           container.innerHTML = "<p>Error loading image: " + err + "</p>";
         });
 
-        // Helper function to update the shifted image with onload callback
+        // Updated helper function to update the shifted image using addEventListener.
         function updateShiftImage(newSrc, callback) {
           var shiftImg = document.getElementById("shift-image");
           if (!shiftImg) return;
           shiftImg.style.visibility = "hidden";
-          shiftImg.onload = function() {
+          var handler = function() {
             shiftImg.style.visibility = "visible";
-            shiftImg.onload = null;
+            shiftImg.removeEventListener("load", handler);
             callback();
           };
+          shiftImg.addEventListener("load", handler);
           shiftImg.src = newSrc;
-          if (shiftImg.complete) {  // If cached, trigger callback immediately.
-            shiftImg.onload();
+          if (shiftImg.complete) {
+            setTimeout(handler, 0);
           }
         }
 
@@ -478,7 +479,6 @@
           }
           btn.disabled = true;
           btn.style.opacity = "0.5";
-          // Use the helper function to update the shifted image
           updateShiftImage(demoImages[currentIndex+1].src, function () {
             currentIndex++;
             btn.disabled = false;
@@ -586,7 +586,7 @@
         btn.style.display = "none";
 
         var container = document.getElementById("actual-exp-container");
-        var properties = groups[window.selectedGroupKey]; // For Group5, this is 3 properties, now treated equally.
+        var properties = groups[window.selectedGroupKey];
         var experimentResults = [];
         function runExperimentForProperty(index) {
           if (index >= properties.length) {
@@ -715,19 +715,20 @@
               };
               btn.addEventListener("click", yesHandler);
               
-              // Helper function for phase image update using onload.
+              // Updated helper function for the actual experiment phase.
               function updatePhaseImage(newSrc, callback) {
                 var shiftImg = document.getElementById("exp-shift-image");
                 if (!shiftImg) return;
                 shiftImg.style.visibility = "hidden";
-                shiftImg.onload = function() {
+                var handler = function() {
                   shiftImg.style.visibility = "visible";
-                  shiftImg.onload = null;
+                  shiftImg.removeEventListener("load", handler);
                   callback();
                 };
+                shiftImg.addEventListener("load", handler);
                 shiftImg.src = newSrc;
                 if (shiftImg.complete) {
-                  shiftImg.onload();
+                  setTimeout(handler, 0);
                 }
               }
 
