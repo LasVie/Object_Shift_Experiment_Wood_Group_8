@@ -408,27 +408,33 @@
           container.innerHTML = "<p>Error loading image: " + err + "</p>";
         });
 
-        // Helper function to update the demo shifted image with flash effect.
-        function updateShiftImage(newSrc, callback) {
+        // Revert to previous timing: 3 sec showing and 1 sec break.
+        // Add flash effect at the moment of showing the new image.
+        function nextImage() {
+          if (trialFinished) return;
+          if (currentIndex >= demoImages.length - 1) {
+            finishTrial();
+            return;
+          }
+          btn.disabled = true;
+          btn.style.opacity = "0.5";
           var shiftImg = document.getElementById("shift-image");
           if (!shiftImg) return;
-          // Add flash effect
-          shiftImg.classList.add("flash");
+          // Hide image and wait 1 second break
           shiftImg.style.visibility = "hidden";
-          var handler = function() {
+          pauseAwareTimeout(function () {
+            currentIndex++;
+            shiftImg.src = demoImages[currentIndex].src;
+            // Add flash effect
+            shiftImg.classList.add("flash");
             shiftImg.style.visibility = "visible";
-            shiftImg.removeEventListener("load", handler);
-            // Remove flash effect slightly after load so that the flash is visible.
-            setTimeout(function() {
+            setTimeout(function () {
               shiftImg.classList.remove("flash");
-              callback();
-            }, 100);
-          };
-          shiftImg.addEventListener("load", handler);
-          shiftImg.src = newSrc;
-          if (shiftImg.complete) {
-            setTimeout(handler, 0);
-          }
+              btn.disabled = false;
+              btn.style.opacity = "1";
+              pauseAwareTimeout(nextImage, 3000);
+            }, 200); // flash effect duration
+          }, 1000); // 1-second break
         }
 
         function startCountdown() {
@@ -484,22 +490,6 @@
           btn.disabled = false;
           btn.style.opacity = "1";
           pauseAwareTimeout(nextImage, 3000);
-        }
-
-        function nextImage() {
-          if (trialFinished) return;
-          if (currentIndex >= demoImages.length - 1) {
-            finishTrial();
-            return;
-          }
-          btn.disabled = true;
-          btn.style.opacity = "0.5";
-          updateShiftImage(demoImages[currentIndex+1].src, function () {
-            currentIndex++;
-            btn.disabled = false;
-            btn.style.opacity = "1";
-            pauseAwareTimeout(nextImage, 3000);
-          });
         }
 
         btn.addEventListener("click", function () {
@@ -730,27 +720,32 @@
               };
               btn.addEventListener("click", yesHandler);
               
-              // Helper function to update the experiment's shifted image with flash effect.
-              function updatePhaseImage(newSrc, callback) {
-                var shiftImg = document.getElementById("exp-shift-image");
-                if (!shiftImg) return;
-                shiftImg.classList.add("flash");
-                shiftImg.style.visibility = "hidden";
-                var handler = function() {
-                  shiftImg.style.visibility = "visible";
-                  shiftImg.removeEventListener("load", handler);
-                  setTimeout(function() {
-                    shiftImg.classList.remove("flash");
-                    callback();
-                  }, 100);
-                };
-                shiftImg.addEventListener("load", handler);
-                shiftImg.src = newSrc;
-                if (shiftImg.complete) {
-                  setTimeout(handler, 0);
+              // Revert to previous timing with 3 sec showing and a 1 sec break with flash effect.
+              function advancePhaseImage() {
+                if (!phaseActive) return;
+                var phase = phases[currentPhaseIndex];
+                if (currentImageIndex >= phase.images.length - 1) {
+                  moveToNextPhase();
+                  return;
                 }
+                btn.disabled = true;
+                btn.style.opacity = "0.5";
+                var shiftImg = document.getElementById("exp-shift-image");
+                shiftImg.style.visibility = "hidden";
+                pauseAwareTimeout(function(){
+                  currentImageIndex++;
+                  shiftImg.src = phase.images[currentImageIndex].src;
+                  shiftImg.classList.add("flash");
+                  shiftImg.style.visibility = "visible";
+                  setTimeout(function(){
+                    shiftImg.classList.remove("flash");
+                    btn.disabled = false;
+                    btn.style.opacity = "1";
+                    pauseAwareTimeout(advancePhaseImage, 3000);
+                  }, 200);
+                }, 1000);
               }
-
+              
               function startPhaseCountdown() {
                 phaseActive = false;
                 yesBtnContainer.style.display = "none";
@@ -778,6 +773,7 @@
                 }
                 setTimeout(expCountdownTick, 1000);
               }
+              
               function startPhase() {
                 phaseActive = true;
                 currentImageIndex = 0;
@@ -787,6 +783,7 @@
                 btn.style.opacity = "1";
                 showPhaseImages();
               }
+              
               function showPhaseImages() {
                 if (!phaseActive) return;
                 var phase = phases[currentPhaseIndex];
@@ -807,22 +804,7 @@
                 `;
                 pauseAwareTimeout(advancePhaseImage, 3000);
               }
-              function advancePhaseImage() {
-                if (!phaseActive) return;
-                var phase = phases[currentPhaseIndex];
-                if (currentImageIndex >= phase.images.length - 1) {
-                  moveToNextPhase();
-                  return;
-                }
-                btn.disabled = true;
-                btn.style.opacity = "0.5";
-                updatePhaseImage(phase.images[currentImageIndex+1].src, function() {
-                  currentImageIndex++;
-                  btn.disabled = false;
-                  btn.style.opacity = "1";
-                  pauseAwareTimeout(advancePhaseImage, 3000);
-                });
-              }
+              
               function moveToNextPhase() {
                 phaseActive = false;
                 currentPhaseIndex++;
@@ -839,6 +821,7 @@
                   });
                 }
               }
+              
               startPhaseCountdown();
             }).catch(function (err) {
               container.innerHTML = "<p>Error loading images: " + err + "</p>";
