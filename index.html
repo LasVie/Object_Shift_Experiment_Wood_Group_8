@@ -2,44 +2,35 @@
 <html>
 <head>
   <title>Visual Perception Experiment</title>
-
   <!-- Include jsPsych core and the needed plugin -->
   <script src="jspsych/dist/jspsych.js"></script>
   <script src="jspsych/dist/plugin-html-button-response.js"></script>
-
   <!-- Include the default jsPsych CSS for basic styling -->
   <link href="jspsych/dist/jspsych.css" rel="stylesheet" type="text/css" />
-
   <style>
-    p {
-      text-align: justify;
-    }
-
-    /* Style for the university logo in top-left corner */
+    p { text-align: justify; }
+    /* University logo */
     .university-logo {
       position: absolute;
       top: 10px;
       left: 10px;
       height: 60px;
     }
-
-    /* Container for welcome text */
+    /* Welcome text container */
     .welcome-container {
       margin-top: 20px;
       margin-left: 100px;
       margin-right: 20px;
       text-align: left;
     }
-
-    /* Demo/Experiment images: fill as much of the screen as possible without overflowing */
+    /* Demo/Experiment image styling */
     .demo-image {
       max-width: 45vw;
       max-height: calc(100vh - 150px);
       width: auto;
       height: auto;
     }
-
-    /* Styling the YES button for dynamic trials */
+    /* jsPsych button styling */
     .jspsych-btn {
       font-weight: bold;
       font-size: 20px;
@@ -50,42 +41,37 @@
       padding: 10px 20px;
       cursor: pointer;
     }
-
     .jspsych-btn:hover {
       background-color: #45a049;
     }
-
-    /* Dedicated container for the YES button (fixed at bottom-right) */
+    /* Fixed container for YES button */
     #yes-button-container {
       position: fixed;
-      bottom: 0px;
+      bottom: 0;
       right: 40px;
       z-index: 1000;
     }
-
-    /* Fullscreen overlay style */
+    /* Fullscreen overlay */
     #fullscreen-overlay {
       position: fixed;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      background-color: rgba(128, 128, 128, 0.7);
+      background-color: rgba(128,128,128,0.7);
       z-index: 10000;
       display: flex;
       align-items: center;
       justify-content: center;
     }
-
     #fullscreen-overlay .prompt-box {
       background-color: white;
       padding: 20px;
       border-radius: 8px;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 0 10px rgba(0,0,0,0.5);
       text-align: center;
       max-width: 90%;
     }
-
     #fullscreen-overlay button {
       font-size: 16px;
       margin: 10px;
@@ -94,12 +80,8 @@
       border-radius: 4px;
       cursor: pointer;
     }
-
-    #fullscreen-overlay button:hover {
-      opacity: 0.9;
-    }
-
-    /* Improved Loading Screen Styles */
+    #fullscreen-overlay button:hover { opacity: 0.9; }
+    /* Loading screen styles */
     .loading-container {
       display: flex;
       flex-direction: column;
@@ -108,10 +90,7 @@
       font-family: Arial, sans-serif;
       margin-top: 50px;
     }
-    .loading-container p {
-      font-size: 24px;
-      margin-bottom: 10px;
-    }
+    .loading-container p { font-size: 24px; margin-bottom: 10px; }
     .progress-bar-container {
       width: 300px;
       height: 20px;
@@ -128,22 +107,31 @@
       border-radius: 10px;
       transition: width 0.2s ease-in-out;
     }
+    /* Flash effect when changing image */
+    .flash {
+      animation: flashEffect 0.2s ease-out;
+    }
+    @keyframes flashEffect {
+      0%   { opacity: 1; }
+      50%  { opacity: 0.3; }
+      100% { opacity: 1; }
+    }
   </style>
 </head>
-
 <body>
-  <!-- Container where the YES button will be dynamically moved -->
+  <!-- Container for YES button -->
   <div id="yes-button-container"></div>
 
   <script>
     /*********************************************************
-     * Global flag to pause the demo/experiment if fullscreen is exited
+     * GLOBAL VARIABLES & HELPER FUNCTIONS
      *********************************************************/
+    // Global array to store YES click events.
+    var yesClickEvents = [];
+    // Clear yesClickEvents when actual experiment starts.
+    function clearYesClickEvents() { yesClickEvents = []; }
+    // Global flag for pausing.
     var demoPaused = false;
-
-    /*********************************************************
-     * Pause-aware timeout helper.
-     *********************************************************/
     function pauseAwareTimeout(callback, delay) {
       setTimeout(function waitForResume() {
         if (demoPaused) {
@@ -153,21 +141,12 @@
         }
       }, delay);
     }
-
-    /*********************************************************
-     * Helper to parse pixel shift from a filename (e.g., "_L25px")
-     *********************************************************/
+    // (Optional) parse pixel shift info from a filename.
     function parseShiftFromFilename(url) {
       var match = url.match(/_(L|R|U|D)(\d+)px/);
-      if (!match) {
-        return { direction: null, shift: 0 };
-      }
-      return {
-        direction: match[1],
-        shift: parseInt(match[2], 10)
-      };
+      if (!match) return { direction: null, shift: 0 };
+      return { direction: match[1], shift: parseInt(match[2], 10) };
     }
-
     /*********************************************************
      * Initialize jsPsych
      *********************************************************/
@@ -175,9 +154,8 @@
       override_safe_mode: true,
       experiment_width: 1000
     });
-
     /*********************************************************
-     * Full Screen Change Listener + Overlay
+     * Fullscreen Listener & Overlay
      *********************************************************/
     document.addEventListener("fullscreenchange", function () {
       if (!document.fullscreenElement) {
@@ -231,13 +209,12 @@
     });
   </script>
 
-  <!-- Script for object & group definitions and helper functions -->
+  <!-- Object and Group Definitions -->
   <script>
     var objectNames = [
       "Book Shelves", "Chess", "Wheel", "Food Platter", "Fruits",
       "Humming Bird", "Plant", "Swing", "Vase", "Wood"
     ];
-
     var groups = {
       "Group1": ["Center_100%_Plain", "Center_100%_LowContrast"],
       "Group2": ["Left_100%_Plain", "Right_100%_Plain"],
@@ -245,13 +222,12 @@
       "Group4": ["Center_125%_Plain", "Center_75%_Plain"],
       "Group5": ["Center_100%_PatternHoriz", "Center_100%_PatternVert", "Center_100%_Messy"]
     };
-
     function getRandomElement(arr) {
       return arr[Math.floor(Math.random() * arr.length)];
     }
   </script>
 
-  <!-- Function to fetch image filenames from your JSON file -->
+  <!-- Function to fetch image filenames -->
   <script>
     function fetchImageFilenames(searchKey) {
       return fetch("https://lasvientuexperimentdata.s3.ap-southeast-1.amazonaws.com/Rendered+Images/filenames.json")
@@ -269,11 +245,9 @@
     }
   </script>
 
-  <!-- Define jsPsych timeline components -->
+  <!-- jsPsych Timeline Components -->
   <script>
-    /*********************************************************
-     * 1) Welcome Page
-     *********************************************************/
+    /*************** 1) Welcome Page ***************/
     var welcomePage = {
       type: jsPsychHtmlButtonResponse,
       stimulus: `
@@ -287,8 +261,7 @@
             to detect these shifts.
           </p>
           <p>
-            <strong>Important:</strong> This experiment must be done on a desktop or laptop in 
-            full screen mode.
+            <strong>Important:</strong> This experiment must be done on a desktop or laptop in full screen mode.
           </p>
           <p>
             <input type="checkbox" id="device-confirm" name="device-confirm">
@@ -313,9 +286,7 @@
       }
     };
 
-    /*********************************************************
-     * 2) Demo Instructions Page
-     *********************************************************/
+    /*************** 2) Demo Instructions Page ***************/
     var demoPage = {
       type: jsPsychHtmlButtonResponse,
       stimulus: `
@@ -324,12 +295,10 @@
           <h3 style="margin-bottom: 5px;">DEMO: The shifted image will move <b>to the left</b></h3>
           <div style="display: flex; justify-content: center; align-items: center; margin-top: 10px;">
             <div style="margin: 5px; text-align: center;">
-              <!-- Updated to "100" instead of "100%" in the file name -->
               <img src="image/00001_Cube_Center_100_Plain_N0px.png" alt="Reference Image" style="width: 300px; height: auto;"><br>
               <span>Reference Image</span>
             </div>
             <div style="margin: 5px; text-align: center;">
-              <!-- Updated to "100" instead of "100%" in the file name -->
               <img src="image/00031_Cube_Center_100_Plain_L30px.png" alt="Shifted Image" style="width: 300px; height: auto;"><br>
               <span>Shifted Image</span>
             </div>
@@ -337,12 +306,12 @@
           <div style="margin-top: 10px; text-align: left; max-width: 1200px; margin-left: auto; margin-right: auto; font-size: 14px; line-height: 1.2;">
             <p>
               In this demo, the left image is a fixed reference, while the right image will update periodically.
-              The shifted image refreshes every 3 seconds. Between updates, it and the YES button will be temporarily
-              disabled, but the layout remains in place.
+              The shifted image refreshes every 3 seconds. Between updates, it and the YES button will be temporarily disabled,
+              but the layout remains in place.
             </p>
             <p>
-              Once you notice a change (shift) in the right image relative to the left image, click "YES" to indicate
-              detection. If you do not notice a change, it will keep updating until the final image.
+              Once you notice a change (shift) in the right image relative to the left image, click "YES" to indicate detection.
+              If you do not notice a change, it will keep updating until the final image.
             </p>
             <p>
               <strong>Note:</strong> Quitting the experiment at any point will erase all progress!
@@ -367,9 +336,7 @@
       }
     };
 
-    /*********************************************************
-     * 3) Dynamic Demo Trial (uses static images for demonstration)
-     *********************************************************/
+    /*************** 3) Dynamic Demo Trial ***************/
     var dynamicDemoTrial = {
       type: jsPsychHtmlButtonResponse,
       stimulus: '<div id="dynamic-demo-container"></div>',
@@ -388,17 +355,11 @@
         var demoImages = [];
         var imageFilenames = [];
         var loadingStartTime = Date.now();
-        window.currentPhase = null;
-        var trialFinished = false;
+        var trialFinished = false;  // Guard against actions after trial ends
 
-        // For the demo, we replaced "100%_Plain" with "100_Plain"
-        // We generate 31 images from 1..31, prefix with leading zeros, and shift L x px
-        // The first file is the "N0px" reference:
         imageFilenames.push("00001_Cube_Center_100_Plain_N0px.png");
-        // Then the next 30 are L1px, L2px, ... L30px
         for (var j = 2; j <= numImages; j++) {
-          var shift = j - 1; // e.g. j=2 => shift=1, up to j=31 => shift=30
-          // Create the zero-padded index:
+          var shift = j - 1;
           var padded = (j < 10) ? "0000" + j : "000" + j;
           var filename = padded + "_Cube_Center_100_Plain_L" + shift + "px.png";
           imageFilenames.push(filename);
@@ -447,15 +408,43 @@
           container.innerHTML = "<p>Error loading image: " + err + "</p>";
         });
 
+        // Use previous logic: display image for 3 sec, then hide for 1 sec,
+        // update image with flash effect and continue.
+        function nextImage() {
+          if (trialFinished) return;
+          if (currentIndex >= demoImages.length - 1) {
+            finishTrial();
+            return;
+          }
+          btn.disabled = true;
+          btn.style.opacity = "0.5";
+          var shiftImg = document.getElementById("shift-image");
+          if (!shiftImg) return;
+          // Hide image for a 1-sec break.
+          shiftImg.style.visibility = "hidden";
+          pauseAwareTimeout(function () {
+            currentIndex++;
+            shiftImg.src = demoImages[currentIndex].src;
+            // Add flash effect at moment of display.
+            shiftImg.classList.add("flash");
+            shiftImg.style.visibility = "visible";
+            setTimeout(function () {
+              shiftImg.classList.remove("flash");
+              btn.disabled = false;
+              btn.style.opacity = "1";
+              pauseAwareTimeout(nextImage, 3000);
+            }, 200); // flash effect duration
+          }, 1000); // 1-sec break
+        }
+
         function startCountdown() {
-          window.currentPhase = "countdown";
           btn.style.display = "none";
           container.innerHTML = `
             <div id="demo-header" style="text-align: center; margin-top: 10px;">
               <h3 style="margin: 0 0 10px 0;">
-                Saliency object is moving <span style="font-size: 1.5em; text-decoration: underline;">LEFT</span>
+                Saliency object is moving <span style="font-size:1.5em; text-decoration: underline;">LEFT</span>
               </h3>
-              <h3 id="countdown" style="font-size: 72px; font-weight:bold; margin: 100px;">3</h3>
+              <h3 id="countdown" style="font-size:72px; font-weight:bold; margin:100px;">3</h3>
             </div>
           `;
           var count = 3;
@@ -465,7 +454,9 @@
               return;
             }
             count--;
-            document.getElementById("countdown").innerHTML = count;
+            var cd = document.getElementById("countdown");
+            if (!cd) return;
+            cd.innerHTML = count;
             if (count <= 0) {
               startDemo();
             } else {
@@ -475,13 +466,12 @@
           setTimeout(countdownTick, 1000);
         }
 
-        var currentIndex = 1;
+        var currentIndex = 0;
         function startDemo() {
-          window.currentPhase = "demo";
           container.innerHTML = `
             <div id="demo-header" style="text-align: center; margin-top: 10px;">
               <h3 style="margin: 0 0 10px 0;">
-                Saliency object is moving <span style="font-size: 1.5em; text-decoration: underline;">LEFT</span>
+                Saliency object is moving <span style="font-size:1.5em; text-decoration: underline;">LEFT</span>
               </h3>
             </div>
             <div id="demo-content" style="display: flex; justify-content: center; align-items: center;">
@@ -502,29 +492,19 @@
           pauseAwareTimeout(nextImage, 3000);
         }
 
-        function nextImage() {
-          window.currentPhase = "refreshing";
-          btn.disabled = true;
-          btn.style.opacity = "0.5";
-          var shiftImg = document.getElementById("shift-image");
-          shiftImg.style.visibility = "hidden";
-          pauseAwareTimeout(function () {
-            if (currentIndex < demoImages.length - 1) {
-              currentIndex++;
-              shiftImg.src = demoImages[currentIndex].src;
-              shiftImg.style.visibility = "visible";
-              btn.disabled = false;
-              btn.style.opacity = "1";
-              pauseAwareTimeout(nextImage, 3000);
-            } else {
-              finishTrial();
-            }
-          }, 1000);
-        }
-
         btn.addEventListener("click", function () {
           if (trialFinished) return;
           trialFinished = true;
+          var shiftImg = document.getElementById("shift-image");
+          if (shiftImg) {
+            var parsed = parseShiftFromFilename(shiftImg.src);
+            yesClickEvents.push({
+              phase: "demo",
+              direction: parsed.direction,
+              shift: parsed.shift,
+              filename: shiftImg.src
+            });
+          }
           finishTrial();
         });
 
@@ -539,9 +519,7 @@
       }
     };
 
-    /*********************************************************
-     * 4) Demo Completion Page
-     *********************************************************/
+    /*************** 4) Demo Completion Page ***************/
     var demoCompleteTrial = {
       type: jsPsychHtmlButtonResponse,
       stimulus: `
@@ -558,15 +536,12 @@
         </p>
       `,
       choices: ['Redo DEMO', 'START ACTUAL EXPERIMENT'],
-      on_finish: function (data) {
+      on_finish: function () {
         // The demo timeline’s loop_function will check data.response.
       }
     };
 
-    /*********************************************************
-     * 5) Dynamic Experiment Instructions Page
-     *    (Randomly pick the group & object, show how many sets)
-     *********************************************************/
+    /*************** 5) Experiment Instructions Page ***************/
     var experimentInstructions = {
       type: jsPsychHtmlButtonResponse,
       stimulus: function() {
@@ -594,18 +569,14 @@
       choices: ['START']
     };
 
-    /*********************************************************
-     * 6) Multi-Key Actual Experiment Trial
-     *    - For each property in the selected group, run 4 directions
-     *    - Record data each time user presses YES
-     *********************************************************/
+    /*************** 6) Multi-Key Actual Experiment Trial ***************/
     var multiKeyExperimentTrial = {
       type: jsPsychHtmlButtonResponse,
       stimulus: '<div id="actual-exp-container"></div>',
       choices: ['YES'],
       response_ends_trial: false,
       on_load: function () {
-        // Try to get the default YES button. If not found, create one.
+        clearYesClickEvents();
         var btn = document.querySelector(".jspsych-btn");
         if (!btn) {
           btn = document.createElement("button");
@@ -618,12 +589,10 @@
         btn.style.display = "none";
 
         var container = document.getElementById("actual-exp-container");
-
         var properties = groups[window.selectedGroupKey];
         console.log("Selected object:", window.selectedObject);
         console.log("Selected group:", window.selectedGroupKey);
         console.log("Properties:", properties);
-
         var experimentResults = [];
 
         function runExperimentForProperty(index) {
@@ -651,7 +620,6 @@
             runExperimentForProperty(index + 1);
           });
         }
-
         runExperimentForProperty(0);
 
         function runDirectionalExperiment(searchKey, propertyName, callback) {
@@ -682,39 +650,26 @@
               callback({}, []);
               return;
             }
-
-            // We now expect at least 401 (1 reference + 4×100) for the new 100-px setup
             if (fileNames.length < 401) {
               container.innerHTML = "<p>Expected ≥ 401 images for key: " + searchKey + ", but got " + fileNames.length + ".</p>";
               callback({}, fileNames);
               return;
             }
-
-            // Take the first 401 images to avoid extras.
             fileNames = fileNames.slice(0, 401);
-
-            // The first image is always the original (N0px).
             var originalFilename = fileNames[0];
-
-            // Next 100 = left, next 100 = right, next 100 = up, last 100 = down
             var leftFilenamesAll = fileNames.slice(1, 101);
             var rightFilenamesAll = fileNames.slice(101, 201);
             var upFilenamesAll = fileNames.slice(201, 301);
             var downFilenamesAll = fileNames.slice(301, 401);
-
-            // Filter them to keep only shifts of 2, 4, 6, ... 100 (i.e. i%2==1 => shift=2,4,6,...,100)
             var leftFilenames = leftFilenamesAll.filter((_, i) => i % 2 === 1);
             var rightFilenames = rightFilenamesAll.filter((_, i) => i % 2 === 1);
             var upFilenames = upFilenamesAll.filter((_, i) => i % 2 === 1);
             var downFilenames = downFilenamesAll.filter((_, i) => i % 2 === 1);
-
-            // Combine all we need to load
             var allFilenames = [originalFilename]
               .concat(leftFilenames)
               .concat(rightFilenames)
               .concat(upFilenames)
               .concat(downFilenames);
-
             var baseImageURL = "https://lasvientuexperimentdata.s3.ap-southeast-1.amazonaws.com/Rendered+Images/";
             function loadImage(src) {
               return new Promise(function(resolve, reject) {
@@ -724,7 +679,6 @@
                 img.src = baseImageURL + encodeURIComponent(src);
               });
             }
-
             Promise.all(allFilenames.map(loadImage)).then(function(loadedImages) {
               var imageMap = {};
               for (var i = 0; i < allFilenames.length; i++) {
@@ -735,7 +689,6 @@
               var rightImages = rightFilenames.map(fn => imageMap[fn]);
               var upImages = upFilenames.map(fn => imageMap[fn]);
               var downImages = downFilenames.map(fn => imageMap[fn]);
-
               var phases = [
                 { direction: "L", label: "LEFT", images: leftImages },
                 { direction: "R", label: "RIGHT", images: rightImages },
@@ -752,34 +705,29 @@
               btn.style.opacity = "0.5";
 
               var yesHandler = function () {
-                if (btn.disabled) return;
-                var phase = phases[currentPhaseIndex];
-                var currentImg = phase.images[currentImageIndex];
-                var currentFilename = currentImg.src;
-                var parsed = parseShiftFromFilename(currentFilename);
-
-                try {
-                  jsPsych.data.write({
-                    trial_id: searchKey + "_" + phase.label,
-                    object: window.selectedObject,
-                    group: window.selectedGroupKey,
-                    property: propertyName,
-                    direction: parsed.direction,
-                    pixel_shift: parsed.shift,
-                    filename: currentFilename
-                  });
-                } catch (e) {
-                  console.error("Error writing data:", e);
+                if (!btn.disabled) {
+                  var phase = phases[currentPhaseIndex];
+                  var currentImg = phase.images[currentImageIndex];
+                  if (currentImg) {
+                    var currentFilename = currentImg.src;
+                    var parsed = parseShiftFromFilename(currentFilename);
+                    yesClickEvents.push({
+                      phase: "actual",
+                      group: window.selectedGroupKey,
+                      property: propertyName,
+                      direction: parsed.direction,
+                      shift: parsed.shift,
+                      filename: currentFilename
+                    });
+                    phaseResults[phase.label] = {
+                      imageIndex: currentImageIndex,
+                      filename: currentFilename,
+                      pixelShift: parsed.shift,
+                      direction: parsed.direction
+                    };
+                  }
+                  moveToNextPhase();
                 }
-
-                phaseResults[phase.label] = {
-                  imageIndex: currentImageIndex,
-                  filename: currentFilename,
-                  pixelShift: parsed.shift,
-                  direction: parsed.direction
-                };
-
-                moveToNextPhase();
               };
               btn.addEventListener("click", yesHandler);
 
@@ -850,10 +798,14 @@
                   if (currentImageIndex < phase.images.length - 1) {
                     currentImageIndex++;
                     shiftImg.src = phase.images[currentImageIndex].src;
+                    shiftImg.classList.add("flash");
                     shiftImg.style.visibility = "visible";
-                    btn.disabled = false;
-                    btn.style.opacity = "1";
-                    pauseAwareTimeout(advancePhaseImage, 3000);
+                    setTimeout(function () {
+                      shiftImg.classList.remove("flash");
+                      btn.disabled = false;
+                      btn.style.opacity = "1";
+                      pauseAwareTimeout(advancePhaseImage, 3000);
+                    }, 200);
                   } else {
                     moveToNextPhase();
                   }
@@ -867,7 +819,6 @@
                 if (currentPhaseIndex < phases.length) {
                   startPhaseCountdown();
                 } else {
-                  // Remove the click handler so it doesn't accumulate multiple times
                   btn.removeEventListener("click", yesHandler);
                   callback(phaseResults, {
                     original: originalFilename,
@@ -880,7 +831,6 @@
               }
 
               startPhaseCountdown();
-
             }).catch(function (err) {
               container.innerHTML = "<p>Error loading images: " + err + "</p>";
             });
@@ -891,11 +841,7 @@
       }
     };
 
-    /*********************************************************
-     * 7) Final "Thank You" + Data Submission
-     *    - Only reached if user completes entire experiment
-     *    - Post the data to a Google Sheet via your Google Apps Script Web App
-     *********************************************************/
+    /*************** 7) Final "Thank You" + Data Submission ***************/
     var finalSubmissionTrial = {
       type: jsPsychHtmlButtonResponse,
       stimulus: `
@@ -907,20 +853,30 @@
       `,
       choices: ['Submit Data'],
       on_finish: function() {
-        // Collect jsPsych data as an array/objects
-        var finalData = jsPsych.data.get().values();
-
-        // Replace this with your own Google Apps Script URL
-        var googleScriptURL = "https://script.google.com/macros/s/AKfycbyYi-Q8U5wFm892ZY3wC9oh3hcnlSI7Z7l84RFtOXqSj9tBvgDUSqtXmJ3Ajpfep1Fbrg/exec";
-        
-        fetch(googleScriptURL, {
+        var jsPsychDataArray = jsPsych.data.get().values();
+        var trialSummary = jsPsychDataArray.map(function(trial) {
+          return {
+            trialIndex: trial.trial_index,
+            trialType: trial.trial_type,
+            response: trial.response,
+            rt: trial.rt,
+            chosenShift: trial.chosen_shift !== undefined ? trial.chosen_shift : null
+          };
+        });
+        var finalPayload = {
+          participantID: "user123",
+          selectedObject: window.selectedObject || null,
+          group: window.selectedGroupKey || null,
+          yesClicks: yesClickEvents,
+          trialSummary: trialSummary
+        };
+        var AWS_ENDPOINT = "https://i7nc0ict3h.execute-api.ap-southeast-1.amazonaws.com/storedata";
+        fetch(AWS_ENDPOINT, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify(finalData)
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(finalPayload)
         })
-        .then(response => response.text())
+        .then(response => response.json())
         .then(result => {
           console.log("Data posted successfully:", result);
         })
@@ -930,34 +886,20 @@
       }
     };
 
-    /*********************************************************
-     * Build the master timeline
-     *********************************************************/
+    /*************** Build the Master Timeline ***************/
     var timeline = [];
-
-    // 1) The Welcome Page
     timeline.push(welcomePage);
-
-    // 2) The Demo: repeated if user presses "Redo DEMO"
     var demoTimeline = {
       timeline: [demoPage, dynamicDemoTrial, demoCompleteTrial],
       loop_function: function (data) {
         var last_trial = data.values()[data.values().length - 1];
-        // If user pressed "Redo DEMO" => response=0 => repeat
         return last_trial.response === 0;
       }
     };
     timeline.push(demoTimeline);
-
-    // 3) Actual Experiment instructions
     timeline.push(experimentInstructions);
-
-    // 4) Actual Experiment multi-key trial
     timeline.push(multiKeyExperimentTrial);
-
-    // 5) Final submission
     timeline.push(finalSubmissionTrial);
-
     jsPsych.run(timeline);
   </script>
 </body>
