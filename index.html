@@ -107,16 +107,28 @@
       border-radius: 10px;
       transition: width 0.2s ease-in-out;
     }
+    /* Circular Progress Bar (Fixed at bottom left) */
+    #progress-circle {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      z-index: 1100;
+      background: transparent;
+    }
   </style>
   <!-- mTurk Integration: Extract query parameters and generate unique survey code -->
   <script>
-    // mTurk appends a query parameter "workerId" to your URL.
+    // mTurk automatically appends a query parameter "workerId" to your URL.
     const urlParams = new URLSearchParams(window.location.search);
     const workerId = urlParams.get("workerId") || "TEST";
-    // Multiply current day of month by 25 and concatenate with workerId.
+    // Get current day of the month and multiply by 25.
     const today = new Date().getDate();
-    const uniqueSurveyCode = workerId + (today * 25);
-    // Store it globally for later use as participantID.
+    const dateMultiplied = today * 25;
+    // Append a random 4-digit number to help prevent false resubmission.
+    const randomPart = Math.floor(Math.random() * 9000 + 1000);
+    // Generate the unique survey code.
+    const uniqueSurveyCode = workerId + dateMultiplied + randomPart;
+    // Store this code globally to be used as the participantID.
     window.participantID = uniqueSurveyCode;
     console.log("Unique Survey Code:", uniqueSurveyCode);
   </script>
@@ -124,6 +136,8 @@
 <body>
   <!-- Container for YES button -->
   <div id="yes-button-container"></div>
+  <!-- Circular progress bar (for actual experiment) -->
+  <canvas id="progress-circle" width="100" height="100"></canvas>
 
   <script>
     /*********************************************************
@@ -168,10 +182,11 @@
         var promptBox = document.createElement("div");
         promptBox.className = "prompt-box";
         var message = document.createElement("p");
+        // Added reminder that refreshing the page will lose all progress.
         message.innerHTML = `
-          You have exited full screen mode.<br><br>
+          You have exited full screen mode. <strong>Do not refresh the page — all progress will be lost.</strong><br><br>
           Press <strong>Resume</strong> to re-enter full screen, or 
-          <strong>Quit</strong> to return to the main screen (all progress lost!).
+          <strong>Quit</strong> to return to the main screen.
         `;
         promptBox.appendChild(message);
         var btnQuit = document.createElement("button");
@@ -248,6 +263,40 @@
     }
   </script>
 
+  <!-- Circular Progress Bar Update Function -->
+  <script>
+    function updateProgressCircle(completed, total) {
+      var canvas = document.getElementById("progress-circle");
+      if (!canvas) return;
+      var ctx = canvas.getContext("2d");
+      var radius = canvas.width / 2 - 5; // leave some margin
+      var centerX = canvas.width / 2;
+      var centerY = canvas.height / 2;
+      
+      // Clear canvas
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      // Draw background circle (light grey)
+      ctx.beginPath();
+      ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+      ctx.fillStyle = "#eee";
+      ctx.fill();
+      
+      // Calculate remaining fraction and corresponding end angle.
+      var fractionRemaining = (total - completed) / total;
+      var startAngle = -Math.PI / 2;
+      var endAngle = startAngle + fractionRemaining * 2 * Math.PI;
+      
+      // Draw remaining progress sector in green.
+      ctx.beginPath();
+      ctx.moveTo(centerX, centerY);
+      ctx.arc(centerX, centerY, radius, startAngle, endAngle, false);
+      ctx.closePath();
+      ctx.fillStyle = "#4CAF50";
+      ctx.fill();
+    }
+  </script>
+
   <!-- jsPsych Timeline Components -->
   <script>
     /*************** 1) Welcome Page ***************/
@@ -262,6 +311,9 @@
             to subtle shifts in the position of a salient object. You will see images
             where a key object may be displaced in various directions. Your task is
             to detect these shifts.
+          </p>
+          <p style="color:red; font-weight:bold;">
+            Please note: Refreshing the page will cause all progress to be lost.
           </p>
           <p>
             <strong>Important:</strong> This experiment must be done on a desktop or laptop in full screen mode.
@@ -316,8 +368,8 @@
               Once you notice a change (shift) in the right image relative to the left image, click "YES" to indicate detection.
               If you do not notice a change, it will keep updating until the final image.
             </p>
-            <p>
-              <strong>Note:</strong> Quitting the experiment at any point will erase all progress!
+            <p style="color:red; font-weight:bold;">
+              Remember: Refreshing the page will cause all progress to be lost.
             </p>
             <p>
               Please confirm you have read these instructions.
@@ -412,7 +464,7 @@
         });
 
         // Use the previous logic: display image for 3 sec, then hide for 1 sec,
-        // update to the next image.
+        // then update to the next image.
         function nextImage() {
           if (trialFinished) return;
           if (currentIndex >= demoImages.length - 1) {
@@ -543,17 +595,30 @@
     var experimentInstructions = {
       type: jsPsychHtmlButtonResponse,
       stimulus: function() {
+        // REMINDER: Do not refresh this page or you will lose all progress!
         window.selectedObject = getRandomElement(objectNames);
         window.selectedGroupKey = getRandomElement(Object.keys(groups));
+        var expectedSetsCount;
+        // Set expected sets count based on group
+        if (window.selectedGroupKey === "Group5") {
+          expectedSetsCount = 12;
+        } else {
+          expectedSetsCount = 8;
+        }
+        // Store the total number of sets (used later for the progress bar)
+        window.expectedSetsCount = expectedSetsCount;
         var props = groups[window.selectedGroupKey];
-        var setsCount = props.length;
+        // (For instructions, we show the expected set count from our design, not directly props.length)
         return `
           <div style="text-align: center;">
             <h2>Actual Experiment:</h2>
             <p>The experiment will now run for a series of keys based on one randomly selected object and group.</p>
             <p>
               You have been assigned to <strong>${window.selectedGroupKey}</strong>.<br>
-              You will perform <strong>${setsCount} set${setsCount > 1 ? 's' : ''}</strong> of experiments.
+              You will perform <strong>${expectedSetsCount} set${expectedSetsCount > 1 ? 's' : ''}</strong> of experiments.
+            </p>
+            <p style="color:red; font-weight:bold;">
+              Reminder: Refreshing this page will cause all your progress to be lost.
             </p>
             <p>
               In each set, the same salient object will be used. The object will shift in 4 directions –
@@ -586,6 +651,12 @@
         yesBtnContainer.style.display = "none";
         btn.style.display = "none";
 
+        // Initialize a progress counter for the experiment sets.
+        var completedSets = 0;
+
+        // Update the progress circle initially.
+        updateProgressCircle(completedSets, window.expectedSetsCount);
+
         var container = document.getElementById("actual-exp-container");
         var properties = groups[window.selectedGroupKey];
         console.log("Selected object:", window.selectedObject);
@@ -595,6 +666,8 @@
 
         function runExperimentForProperty(index) {
           if (index >= properties.length) {
+            // When all properties are complete, update progress to full.
+            updateProgressCircle(window.expectedSetsCount, window.expectedSetsCount);
             if (btn.parentNode) {
               btn.parentNode.removeChild(btn);
             }
@@ -615,6 +688,9 @@
               phaseResults: phaseResults,
               filenames: filenames
             });
+            // Increment set counter and update progress circle.
+            completedSets++;
+            updateProgressCircle(completedSets, window.expectedSetsCount);
             runExperimentForProperty(index + 1);
           });
         }
@@ -842,11 +918,12 @@
         <div style="text-align:center;">
           <h2>Submit Your Data</h2>
           <p>Please press the button below to submit your data.</p>
+          <p style="color:red; font-weight:bold;">Reminder: Do not refresh this page or your progress will be lost.</p>
         </div>
       `,
       choices: ['Submit Data'],
       on_finish: function() {
-        // A) Collect trial data summary.
+        // Collect trial data summary.
         var jsPsychDataArray = jsPsych.data.get().values();
         var trialSummary = jsPsychDataArray.map(function(trial) {
           return {
@@ -857,7 +934,7 @@
             chosenShift: trial.chosen_shift !== undefined ? trial.chosen_shift : null
           };
         });
-        // B) Build the final payload using the mTurk unique survey code as participantID.
+        // Build the final payload using the unique survey code as participantID.
         var finalPayload = {
           participantID: window.participantID,
           selectedObject: window.selectedObject || null,
@@ -865,7 +942,7 @@
           yesClicks: yesClickEvents,
           trialSummary: trialSummary
         };
-        // C) Post the payload to your AWS endpoint.
+        // Post the payload to your AWS endpoint.
         var AWS_ENDPOINT = "https://i7nc0ict3h.execute-api.ap-southeast-1.amazonaws.com/storedata";
         fetch(AWS_ENDPOINT, {
           method: "POST",
