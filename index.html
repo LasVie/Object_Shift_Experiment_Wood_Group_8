@@ -2,10 +2,10 @@
 <html>
 <head>
   <title>Visual Perception Experiment</title>
-  <!-- Include jsPsych core and plugin -->
+  <!-- Include jsPsych core and the needed plugin -->
   <script src="jspsych/dist/jspsych.js"></script>
   <script src="jspsych/dist/plugin-html-button-response.js"></script>
-  <!-- Include jsPsych default CSS -->
+  <!-- Include the default jsPsych CSS for basic styling -->
   <link href="jspsych/dist/jspsych.css" rel="stylesheet" type="text/css" />
   <style>
     p { text-align: justify; }
@@ -41,7 +41,9 @@
       padding: 10px 20px;
       cursor: pointer;
     }
-    .jspsych-btn:hover { background-color: #45a049; }
+    .jspsych-btn:hover {
+      background-color: #45a049;
+    }
     /* Fixed container for YES button */
     #yes-button-container {
       position: fixed;
@@ -105,7 +107,7 @@
       border-radius: 10px;
       transition: width 0.2s ease-in-out;
     }
-    /* Circular progress indicator at bottom left */
+    /* Circular progress indicator at bottom left (smaller circle) */
     #progress-circle {
       position: fixed;
       bottom: 10px;
@@ -120,7 +122,7 @@
   </style>
   <!-- mTurk Integration: Generate Unique Survey Code -->
   <script>
-    // mTurk automatically appends "workerId" to the URL.
+    // mTurk automatically appends "workerId" to your URL.
     const urlParams = new URLSearchParams(window.location.search);
     const workerId = urlParams.get("workerId") || "TEST";
     // Use the current day multiplied by 25, then append four random digits.
@@ -152,11 +154,8 @@
     var demoPaused = false;
     function pauseAwareTimeout(callback, delay) {
       setTimeout(function waitForResume() {
-        if (demoPaused) {
-          setTimeout(waitForResume, 100);
-        } else {
-          callback();
-        }
+        if (demoPaused) { setTimeout(waitForResume, 100); }
+        else { callback(); }
       }, delay);
     }
     function parseShiftFromFilename(url) {
@@ -229,7 +228,9 @@
       "Group4": ["Center_125%_Plain", "Center_75%_Plain"],
       "Group5": ["Center_100%_PatternHoriz", "Center_100%_PatternVert", "Center_100%_Messy"]
     };
-    function getRandomElement(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+    function getRandomElement(arr) {
+      return arr[Math.floor(Math.random() * arr.length)];
+    }
   </script>
   <script>
     function fetchImageFilenames(searchKey) {
@@ -254,13 +255,17 @@
         <div class="welcome-container">
           <h1>Visual Perception Experiment</h1>
           <p>
-            This study aims to evaluate the sensitivity of the human visual system to subtle shifts in the position of a salient object.
-            You will see images where a key object may be displaced in various directions. Your task is to detect these shifts.
+            This study aims to evaluate the sensitivity of the human visual system
+            to subtle shifts in the position of a salient object. You will see images
+            where a key object may be displaced in various directions. Your task is
+            to detect these shifts.
           </p>
           <p>
             <strong>Important:</strong> This experiment must be done on a desktop or laptop in full screen mode.
           </p>
-          <p style="color:red; font-weight:bold;">Please do not refresh the page during the experiment; refreshing will cause all progress to be lost.</p>
+          <p style="color:red; font-weight:bold;">
+            Please do not refresh the page during the experiment; refreshing will cause all progress to be lost.
+          </p>
           <p>
             <input type="checkbox" id="device-confirm" name="device-confirm">
             <label for="device-confirm">I confirm that I am using a desktop PC or laptop.</label>
@@ -374,11 +379,8 @@
           var progress = 0;
           var interval = setInterval(function () {
             progress += 5;
-            if (progress >= 100) {
-              clearInterval(interval);
-            } else {
-              loadingBar.style.width = progress + "%";
-            }
+            if (progress >= 100) { clearInterval(interval); }
+            else { loadingBar.style.width = progress + "%"; }
           }, 100);
         }, 100);
         function loadImage(src) {
@@ -495,6 +497,7 @@
       }
     };
 
+    /*************** 4) Demo Completion Page ***************/
     var demoCompleteTrial = {
       type: jsPsychHtmlButtonResponse,
       stimulus: `
@@ -511,9 +514,10 @@
         </p>
       `,
       choices: ['Redo DEMO', 'START ACTUAL EXPERIMENT'],
-      on_finish: function () { /* Loop back handled by timeline loop_function */ }
+      on_finish: function () { /* Loop handled in timeline */ }
     };
 
+    /*************** 5) Experiment Instructions Page ***************/
     var experimentInstructions = {
       type: jsPsychHtmlButtonResponse,
       stimulus: function() {
@@ -529,7 +533,9 @@
               You have been assigned to <strong>${window.selectedGroupKey}</strong>.<br>
               You will perform <strong>${setsCount * 4} sets</strong> (each property contributes 4 directions) of experiments.
             </p>
-            <p style="color:red; font-weight:bold;">WARNING: Refreshing the page will cause all progress to be lost.</p>
+            <p style="color:red; font-weight:bold;">
+              WARNING: Refreshing the page will cause all progress to be lost.
+            </p>
             <p>
               In each set, the same salient object will be used. The object will shift in 4 directions – Left, Right, Up, and Down.
               After each directional shift, please press <strong>YES</strong> once you observe a difference.
@@ -541,6 +547,7 @@
       choices: ['START']
     };
 
+    /*************** 6) Multi-Key Actual Experiment Trial ***************/
     var multiKeyExperimentTrial = {
       type: jsPsychHtmlButtonResponse,
       stimulus: '<div id="actual-exp-container"></div>',
@@ -559,22 +566,28 @@
         yesBtnContainer.style.display = "none";
         btn.style.display = "none";
 
-        // Display the circular progress indicator.
+        // --- MODIFIED PART FOR CONTINUOUS CIRCULAR PROGRESS ---
+        // Ensure the circular progress indicator (already in the HTML) is visible.
         document.getElementById("progress-circle").style.display = "block";
         var properties = groups[window.selectedGroupKey];
+        // Compute total sets once for the entire multi-key trial.
         var totalSets = properties.length * 4;
-        var completedSets = 0;
-        function updateProgressCircle() {
-          var angle = ((totalSets - completedSets) / totalSets) * 360;
+        // Declare global variable for completed sets (persisting across all properties).
+        window.completedSets = 0;
+        // Define a function to update the progress circle.
+        window.updateProgressCircle = function() {
+          var angle = ((totalSets - window.completedSets) / totalSets) * 360;
           document.getElementById("progress-circle").style.background =
             `conic-gradient(#4CAF50 0deg, #4CAF50 ${angle}deg, #ccc ${angle}deg, #ccc 360deg)`;
-        }
-        updateProgressCircle();
+        };
+        window.updateProgressCircle();
+        // --- END MODIFIED PART ---
 
         console.log("Selected object:", window.selectedObject);
         console.log("Selected group:", window.selectedGroupKey);
         console.log("Properties:", properties);
         var experimentResults = [];
+
         function runExperimentForProperty(index) {
           if (index >= properties.length) {
             if (btn.parentNode) { btn.parentNode.removeChild(btn); }
@@ -699,8 +712,9 @@
                       direction: parsed.direction
                     };
                   }
-                  completedSets++;
-                  updateProgressCircle();
+                  // Increment the global completedSets counter and update progress.
+                  window.completedSets++;
+                  window.updateProgressCircle();
                   moveToNextPhase();
                 }
               };
@@ -723,8 +737,11 @@
                   }
                   count--;
                   document.getElementById("exp-countdown").innerHTML = count;
-                  if (count <= 0) { startPhase(); }
-                  else { setTimeout(expCountdownTick, 1000); }
+                  if (count <= 0) {
+                    startPhase();
+                  } else {
+                    setTimeout(expCountdownTick, 1000);
+                  }
                 }
                 setTimeout(expCountdownTick, 1000);
               }
@@ -797,16 +814,7 @@
                   });
                 }
               }
-
-              // Global variables for circular progress indicator.
-              var completedSets = 0;
-              var totalSets = properties.length * 4;
-              updateProgressCircle();
-              function updateProgressCircle() {
-                var angle = ((totalSets - completedSets) / totalSets) * 360;
-                document.getElementById("progress-circle").style.background =
-                  `conic-gradient(#4CAF50 0deg, #4CAF50 ${angle}deg, #ccc ${angle}deg, #ccc 360deg)`;
-              }
+              // Start the countdown for the current phase.
               startPhaseCountdown();
             }).catch(function (err) {
               container.innerHTML = "<p>Error loading images: " + err + "</p>";
@@ -818,6 +826,7 @@
       }
     };
 
+    /*************** 7) Final "Submit Data" Page ***************/
     var finalSubmissionTrial = {
       type: jsPsychHtmlButtonResponse,
       stimulus: `
@@ -862,6 +871,7 @@
       }
     };
 
+    /*************** 8) Final Survey Code Page ***************/
     var finalCodeTrial = {
       type: jsPsychHtmlButtonResponse,
       stimulus: `
