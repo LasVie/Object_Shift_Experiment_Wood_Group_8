@@ -107,19 +107,35 @@
       border-radius: 10px;
       transition: width 0.2s ease-in-out;
     }
+    /* Circular progress indicator at bottom left */
+    #progress-circle {
+      position: fixed;
+      bottom: 10px;
+      left: 10px;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: conic-gradient(#4CAF50 0deg, #4CAF50 360deg, #ccc 360deg, #ccc 360deg);
+      z-index: 1000;
+    }
   </style>
   <!-- mTurk Integration: Extract query parameters and generate unique survey code -->
   <script>
     // mTurk appends a query parameter "workerId" to your URL.
     const urlParams = new URLSearchParams(window.location.search);
     const workerId = urlParams.get("workerId") || "TEST";
-    // Use the current day of the month
+    // Multiply current day by 25 and append 4 random digits
     const today = new Date().getDate();
-    // Generate a 4-digit random number for extra randomness.
-    const randomPart = Math.floor(1000 + Math.random() * 9000); // generates a 4-digit number
-    // Unique Survey Code is workerId + (today * 25) + randomPart.
-    const uniqueSurveyCode = workerId + (today * 25) + randomPart;
-    // Store it globally as participantID for our database.
+    function generateRandomDigits(n) {
+      let result = '';
+      for (let i = 0; i < n; i++) {
+        result += Math.floor(Math.random() * 10);  // random digit from 0 to 9
+      }
+      return result;
+    }
+    const randomDigits = generateRandomDigits(4);
+    const uniqueSurveyCode = workerId + (today * 25) + randomDigits;
+    // Store it globally as participantID.
     window.participantID = uniqueSurveyCode;
     console.log("Unique Survey Code:", uniqueSurveyCode);
   </script>
@@ -127,6 +143,8 @@
 <body>
   <!-- Container for YES button -->
   <div id="yes-button-container"></div>
+  <!-- Circular progress indicator (only visible during the actual experiment) -->
+  <div id="progress-circle" style="display: none;"></div>
 
   <script>
     /*********************************************************
@@ -134,7 +152,9 @@
      *********************************************************/
     // Global array to store YES click events.
     var yesClickEvents = [];
+    // Clear yesClickEvents when actual experiment starts.
     function clearYesClickEvents() { yesClickEvents = []; }
+    // Global flag for pausing.
     var demoPaused = false;
     function pauseAwareTimeout(callback, delay) {
       setTimeout(function waitForResume() {
@@ -145,6 +165,7 @@
         }
       }, delay);
     }
+    // (Optional) parse pixel shift info from a filename.
     function parseShiftFromFilename(url) {
       var match = url.match(/_(L|R|U|D)(\d+)px/);
       if (!match) return { direction: null, shift: 0 };
@@ -263,10 +284,10 @@
             where a key object may be displaced in various directions. Your task is
             to detect these shifts.
           </p>
-          <p style="color:red;"><strong>WARNING:</strong> Do NOT refresh the page! Refreshing will cause all progress to be lost.</p>
           <p>
             <strong>Important:</strong> This experiment must be done on a desktop or laptop in full screen mode.
           </p>
+          <p style="color:red; font-weight:bold;">Please do not refresh the page during the experiment; refreshing will cause all progress to be lost.</p>
           <p>
             <input type="checkbox" id="device-confirm" name="device-confirm">
             <label for="device-confirm">I confirm that I am using a desktop PC or laptop.</label>
@@ -284,7 +305,7 @@
       on_finish: function () {
         if (!document.fullscreenElement) {
           document.documentElement.requestFullscreen().catch(function (err) {
-            console.error("Error attempting to enable full-screen mode:", err);
+            console.error("Error attempting to enable full screen:", err);
           });
         }
       }
@@ -317,7 +338,9 @@
               Once you notice a change (shift) in the right image relative to the left image, click "YES" to indicate detection.
               If you do not notice a change, it will keep updating until the final image.
             </p>
-            <p style="color:red;"><strong>WARNING:</strong> Refreshing the page at any point will result in loss of progress.</p>
+            <p>
+              <strong>Note:</strong> Quitting the experiment at any point will erase all progress!
+            </p>
             <p>
               Please confirm you have read these instructions.
             </p>
@@ -357,7 +380,7 @@
         var demoImages = [];
         var imageFilenames = [];
         var loadingStartTime = Date.now();
-        var trialFinished = false;
+        var trialFinished = false;  // Guard against actions after trial ends
 
         imageFilenames.push("00001_Cube_Center_100_Plain_N0px.png");
         for (var j = 2; j <= numImages; j++) {
@@ -410,6 +433,8 @@
           container.innerHTML = "<p>Error loading image: " + err + "</p>";
         });
 
+        // Use the previous logic: display image for 3 sec, then hide for 1 sec,
+        // update to the next image.
         function nextImage() {
           if (trialFinished) return;
           if (currentIndex >= demoImages.length - 1) {
@@ -420,6 +445,7 @@
           btn.style.opacity = "0.5";
           var shiftImg = document.getElementById("shift-image");
           if (!shiftImg) return;
+          // Hide image for a 1-sec break.
           shiftImg.style.visibility = "hidden";
           pauseAwareTimeout(function () {
             currentIndex++;
@@ -435,7 +461,9 @@
           btn.style.display = "none";
           container.innerHTML = `
             <div id="demo-header" style="text-align: center; margin-top: 10px;">
-              <h3 style="margin: 0 0 10px 0;">Saliency object is moving <span style="font-size:1.5em; text-decoration: underline;">LEFT</span></h3>
+              <h3 style="margin: 0 0 10px 0;">
+                Saliency object is moving <span style="font-size:1.5em; text-decoration: underline;">LEFT</span>
+              </h3>
               <h3 id="countdown" style="font-size:72px; font-weight:bold; margin:100px;">3</h3>
             </div>
           `;
@@ -462,7 +490,9 @@
         function startDemo() {
           container.innerHTML = `
             <div id="demo-header" style="text-align: center; margin-top: 10px;">
-              <h3 style="margin: 0 0 10px 0;">Saliency object is moving <span style="font-size:1.5em; text-decoration: underline;">LEFT</span></h3>
+              <h3 style="margin: 0 0 10px 0;">
+                Saliency object is moving <span style="font-size:1.5em; text-decoration: underline;">LEFT</span>
+              </h3>
             </div>
             <div id="demo-content" style="display: flex; justify-content: center; align-items: center;">
               <div style="margin: 5px; text-align: center;">
@@ -527,7 +557,7 @@
       `,
       choices: ['Redo DEMO', 'START ACTUAL EXPERIMENT'],
       on_finish: function () {
-        // Loop back for a redo if response === 0.
+        // The demo timeline’s loop_function will check data.response.
       }
     };
 
@@ -535,17 +565,23 @@
     var experimentInstructions = {
       type: jsPsychHtmlButtonResponse,
       stimulus: function() {
-        // Warning about refresh is added
+        window.selectedObject = getRandomElement(objectNames);
+        window.selectedGroupKey = getRandomElement(Object.keys(groups));
+        var props = groups[window.selectedGroupKey];
+        var setsCount = props.length;
         return `
           <div style="text-align: center;">
-            <h2>Actual Experiment Instructions</h2>
-            <p style="color:red;"><strong>WARNING:</strong> Refreshing the page will cause all progress to be lost.</p>
-            <p>The experiment will now run for a series of sets based on one randomly selected object and group.</p>
-            <p>You have been assigned to <strong>${window.selectedGroupKey = getRandomElement(Object.keys(groups))}</strong>.</p>
-            <p>This study consists of <strong>${(window.selectedGroupKey === "Group5") ? 12 : 8}</strong> sets.</p>
+            <h2>Actual Experiment:</h2>
+            <p>The experiment will now run for a series of keys based on one randomly selected object and group.</p>
             <p>
-              In each set, the same salient object will be used. The object will shift in 4 directions – Left, Right, Up, and Down.
-              After each directional shift, please press <strong>YES</strong> once you observe a difference.
+              You have been assigned to <strong>${window.selectedGroupKey}</strong>.<br>
+              You will perform <strong>${setsCount * 4} sets</strong> (each property contributes 4 directions) of experiments.
+            </p>
+            <p style="color:red; font-weight:bold;">WARNING: Refreshing the page will cause all progress to be lost.</p>
+            <p>
+              In each set, the same salient object will be used. The object will shift in 4 directions –
+              Left, Right, Up, and Down. After each directional shift, please press <strong>YES</strong>
+              once you observe a difference.
             </p>
             <p>Once ready, please press START.</p>
           </div>
@@ -561,9 +597,7 @@
       choices: ['YES'],
       response_ends_trial: false,
       on_load: function () {
-        // Clear demo yes click events.
         clearYesClickEvents();
-
         var btn = document.querySelector(".jspsych-btn");
         if (!btn) {
           btn = document.createElement("button");
@@ -575,31 +609,29 @@
         yesBtnContainer.style.display = "none";
         btn.style.display = "none";
 
-        var container = document.getElementById("actual-exp-container");
-        var totalSets = (window.selectedGroupKey === "Group5") ? 12 : 8;
-        var setsCompleted = 0;
-        // Create a progress circle at bottom left of the screen (small circle)
-        var circleDiameter = 40;
-        var circleRadius = 15;
-        var circumference = 2 * Math.PI * circleRadius;
-        var progressCircleContainer = document.createElement("div");
-        progressCircleContainer.id = "progress-circle-container";
-        progressCircleContainer.style.position = "fixed";
-        progressCircleContainer.style.bottom = "20px";
-        progressCircleContainer.style.left = "20px";
-        progressCircleContainer.style.width = circleDiameter + "px";
-        progressCircleContainer.style.height = circleDiameter + "px";
-        progressCircleContainer.innerHTML = '<svg width="' + circleDiameter + '" height="' + circleDiameter + '"><circle id="progress-circle" cx="' + (circleDiameter/2) + '" cy="' + (circleDiameter/2) + '" r="' + circleRadius + '" stroke="green" stroke-width="4" fill="none" stroke-dasharray="' + circumference + '" stroke-dashoffset="0"/></svg>';
-        document.body.appendChild(progressCircleContainer);
-
-        function updateProgress() {
-          var newOffset = circumference * (totalSets - setsCompleted) / totalSets;
-          document.getElementById("progress-circle").style.strokeDashoffset = newOffset;
+        // Show the progress circle (at bottom left).
+        document.getElementById("progress-circle").style.display = "block";
+        // Compute total sets: (properties.length * 4)
+        var properties = groups[window.selectedGroupKey];
+        var totalSets = properties.length * 4;
+        var completedSets = 0;
+        // Function to update progress circle based on completedSets.
+        function updateProgressCircle() {
+          var angle = ((totalSets - completedSets) / totalSets) * 360;
+          document.getElementById("progress-circle").style.background =
+            `conic-gradient(#4CAF50 0deg, #4CAF50 ${angle}deg, #ccc ${angle}deg, #ccc 360deg)`;
         }
+        // Initialize progress
+        updateProgressCircle();
 
+        var container = document.getElementById("actual-exp-container");
+        console.log("Selected object:", window.selectedObject);
+        console.log("Selected group:", window.selectedGroupKey);
+        console.log("Properties:", properties);
         var experimentResults = [];
+
         function runExperimentForProperty(index) {
-          if (index >= totalSets) {
+          if (index >= properties.length) {
             if (btn.parentNode) {
               btn.parentNode.removeChild(btn);
             }
@@ -611,9 +643,7 @@
             jsPsych.finishTrial(trialData);
             return;
           }
-          // Cycle through available properties if totalSets exceed array length.
-          var props = groups[window.selectedGroupKey];
-          var selectedProperty = props[index % props.length];
+          var selectedProperty = properties[index];
           var searchKey = window.selectedObject + "_" + selectedProperty;
           console.log("Running experiment for key:", searchKey);
           runDirectionalExperiment(searchKey, selectedProperty, function(phaseResults, filenames) {
@@ -622,8 +652,6 @@
               phaseResults: phaseResults,
               filenames: filenames
             });
-            setsCompleted++;
-            updateProgress();
             runExperimentForProperty(index + 1);
           });
         }
@@ -641,13 +669,13 @@
           document.getElementById("yes-button-container").style.display = "none";
 
           var loadingBar = document.getElementById("exp-loading-bar");
-          var progressVal = 0;
+          var progress = 0;
           var loadingInterval = setInterval(function () {
-            progressVal += 5;
-            if (progressVal >= 100) {
+            progress += 5;
+            if (progress >= 100) {
               clearInterval(loadingInterval);
             } else {
-              loadingBar.style.width = progressVal + "%";
+              loadingBar.style.width = progress + "%";
             }
           }, 100);
 
@@ -733,6 +761,9 @@
                       direction: parsed.direction
                     };
                   }
+                  // Increase progress: one set completed
+                  completedSets++;
+                  updateProgressCircle();
                   moveToNextPhase();
                 }
               };
@@ -832,6 +863,18 @@
                   });
                 }
               }
+
+              // Initialize completedSets variable and update progress circle.
+              var completedSets = 0;
+              updateProgressCircle();
+              function updateProgressCircle() {
+                var angle = ((totalSets - completedSets) / totalSets) * 360;
+                document.getElementById("progress-circle").style.background =
+                  `conic-gradient(#4CAF50 0deg, #4CAF50 ${angle}deg, #ccc ${angle}deg, #ccc 360deg)`;
+              }
+              // totalSets is the total number of sets in this trial.
+              var totalSets = properties.length * 4;
+
               startPhaseCountdown();
             }).catch(function (err) {
               container.innerHTML = "<p>Error loading images: " + err + "</p>";
@@ -850,10 +893,12 @@
         <div style="text-align:center;">
           <h2>Submit Your Data</h2>
           <p>Please press the button below to submit your data.</p>
+          <p style="color:red; font-weight:bold;">Warning: Do not refresh the page during the experiment; refreshing will cause all progress to be lost.</p>
         </div>
       `,
       choices: ['Submit Data'],
       on_finish: function() {
+        // A) Collect trial data summary.
         var jsPsychDataArray = jsPsych.data.get().values();
         var trialSummary = jsPsychDataArray.map(function(trial) {
           return {
@@ -864,6 +909,7 @@
             chosenShift: trial.chosen_shift !== undefined ? trial.chosen_shift : null
           };
         });
+        // B) Build the final payload using the unique survey code (mTurk participantID)
         var finalPayload = {
           participantID: window.participantID,
           selectedObject: window.selectedObject || null,
@@ -871,6 +917,7 @@
           yesClicks: yesClickEvents,
           trialSummary: trialSummary
         };
+        // C) Post the payload to your AWS endpoint.
         var AWS_ENDPOINT = "https://i7nc0ict3h.execute-api.ap-southeast-1.amazonaws.com/storedata";
         fetch(AWS_ENDPOINT, {
           method: "POST",
