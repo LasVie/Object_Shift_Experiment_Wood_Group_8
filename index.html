@@ -41,7 +41,9 @@
       padding: 10px 20px;
       cursor: pointer;
     }
-    .jspsych-btn:hover { background-color: #45a049; }
+    .jspsych-btn:hover {
+      background-color: #45a049;
+    }
     /* Fixed container for YES button */
     #yes-button-container {
       position: fixed;
@@ -117,7 +119,7 @@
      *********************************************************/
     // Global array to store YES click events.
     var yesClickEvents = [];
-    // Clear YES events at the start of actual experiment.
+    // Clear yesClickEvents when actual experiment starts.
     function clearYesClickEvents() { yesClickEvents = []; }
     // Global flag for pausing.
     var demoPaused = false;
@@ -125,10 +127,12 @@
       setTimeout(function waitForResume() {
         if (demoPaused) {
           setTimeout(waitForResume, 100);
-        } else { callback(); }
+        } else {
+          callback();
+        }
       }, delay);
     }
-    // (Optional) parse shift info from filename.
+    // (Optional) parse pixel shift info from a filename.
     function parseShiftFromFilename(url) {
       var match = url.match(/_(L|R|U|D)(\d+)px/);
       if (!match) return { direction: null, shift: 0 };
@@ -248,8 +252,7 @@
             to detect these shifts.
           </p>
           <p>
-            <strong>Important:</strong> This experiment must be done on a desktop or laptop in 
-            full screen mode.
+            <strong>Important:</strong> This experiment must be done on a desktop or laptop in full screen mode.
           </p>
           <p>
             <input type="checkbox" id="device-confirm" name="device-confirm">
@@ -294,12 +297,12 @@
           <div style="margin-top: 10px; text-align: left; max-width: 1200px; margin-left: auto; margin-right: auto; font-size: 14px; line-height: 1.2;">
             <p>
               In this demo, the left image is a fixed reference, while the right image will update periodically.
-              The shifted image refreshes every 3 seconds. Between updates, it and the YES button will be temporarily
-              disabled, but the layout remains in place.
+              The shifted image refreshes every 3 seconds. Between updates, it and the YES button will be temporarily disabled,
+              but the layout remains in place.
             </p>
             <p>
-              Once you notice a change (shift) in the right image relative to the left image, click "YES" to indicate
-              detection. If you do not notice a change, it will keep updating until the final image.
+              Once you notice a change (shift) in the right image relative to the left image, click "YES" to indicate detection.
+              If you do not notice a change, it will keep updating until the final image.
             </p>
             <p>
               <strong>Note:</strong> Quitting the experiment at any point will erase all progress!
@@ -401,9 +404,9 @@
           container.innerHTML = `
             <div id="demo-header" style="text-align: center; margin-top: 10px;">
               <h3 style="margin: 0 0 10px 0;">
-                Saliency object is moving <span style="font-size: 1.5em; text-decoration: underline;">LEFT</span>
+                Saliency object is moving <span style="font-size:1.5em; text-decoration: underline;">LEFT</span>
               </h3>
-              <h3 id="countdown" style="font-size: 72px; font-weight:bold; margin: 100px;">3</h3>
+              <h3 id="countdown" style="font-size:72px; font-weight:bold; margin:100px;">3</h3>
             </div>
           `;
           var count = 3;
@@ -430,7 +433,7 @@
           container.innerHTML = `
             <div id="demo-header" style="text-align: center; margin-top: 10px;">
               <h3 style="margin: 0 0 10px 0;">
-                Saliency object is moving <span style="font-size: 1.5em; text-decoration: underline;">LEFT</span>
+                Saliency object is moving <span style="font-size:1.5em; text-decoration: underline;">LEFT</span>
               </h3>
             </div>
             <div id="demo-content" style="display: flex; justify-content: center; align-items: center;">
@@ -517,8 +520,8 @@
         </p>
       `,
       choices: ['Redo DEMO', 'START ACTUAL EXPERIMENT'],
-      on_finish: function (data) {
-        // Loop back if the user chooses to redo demo (response===0).
+      on_finish: function () {
+        // Loop back for a redo if response === 0.
       }
     };
 
@@ -526,10 +529,15 @@
     var experimentInstructions = {
       type: jsPsychHtmlButtonResponse,
       stimulus: function() {
+        // Force selectedGroupKey to "Group5" if it exists to test 3 sets.
+        if (Object.keys(groups).includes("Group5")) {
+          window.selectedGroupKey = "Group5";
+        } else {
+          window.selectedGroupKey = getRandomElement(Object.keys(groups));
+        }
         window.selectedObject = getRandomElement(objectNames);
-        window.selectedGroupKey = getRandomElement(Object.keys(groups));
         var props = groups[window.selectedGroupKey];
-        var setsCount = props.length; // Can be 2 or 3.
+        var setsCount = props.length;
         return `
           <div style="text-align: center;">
             <h2>Actual Experiment:</h2>
@@ -557,7 +565,7 @@
       choices: ['YES'],
       response_ends_trial: false,
       on_load: function () {
-        // Clear any demo yes clicks so that we record only actual trial clicks.
+        // Clear demo yes click events so only actual clicks are recorded.
         clearYesClickEvents();
 
         var btn = document.querySelector(".jspsych-btn");
@@ -572,7 +580,7 @@
         btn.style.display = "none";
 
         var container = document.getElementById("actual-exp-container");
-        var properties = groups[window.selectedGroupKey]; // This could be 2 or 3 sets.
+        var properties = groups[window.selectedGroupKey]; // For Group5, this is 3 properties.
         var experimentResults = [];
         function runExperimentForProperty(index) {
           if (index >= properties.length) {
@@ -833,14 +841,12 @@
         // B) Build the final payload as a plain object.
         var finalPayload = {
           participantID: "user123",
-          // Removed experimentID per request.
           selectedObject: window.selectedObject || null,
           group: window.selectedGroupKey || null,
-          // yesClicks now contains the flattened yes-click events gathered in both the demo and multi-key experiments.
-          yesClicks: yesClickEvents,
+          yesClicks: yesClickEvents, // Array of plain objects gathered during the experiment.
           trialSummary: trialSummary
         };
-        // C) Post the payload to the AWS endpoint.
+        // C) Post the payload to your AWS endpoint.
         var AWS_ENDPOINT = "https://i7nc0ict3h.execute-api.ap-southeast-1.amazonaws.com/storedata";
         fetch(AWS_ENDPOINT, {
           method: "POST",
@@ -854,6 +860,7 @@
         })
         .catch(error => {
           console.error("Error posting data:", error);
+          // Optionally display an error message.
         });
       }
     };
@@ -861,19 +868,17 @@
     /*************** Build the Master Timeline ***************/
     var timeline = [];
     timeline.push(welcomePage);
-
     var demoTimeline = {
       timeline: [demoPage, dynamicDemoTrial, demoCompleteTrial],
       loop_function: function (data) {
         var last_trial = data.values()[data.values().length - 1];
-        return last_trial.response === 0; // Redo the demo if response equals 0.
+        return last_trial.response === 0;
       }
     };
     timeline.push(demoTimeline);
     timeline.push(experimentInstructions);
     timeline.push(multiKeyExperimentTrial);
     timeline.push(finalSubmissionTrial);
-
     jsPsych.run(timeline);
   </script>
 </body>
