@@ -917,14 +917,31 @@
         // A) Collect jsPsych data as an array of objects
         var jsPsychDataArray = jsPsych.data.get().values();
 
-        // B) Also send the "yesClickEvents" that we captured each time user pressed YES
-        //    This ensures we have direction + shift for each click
+        // B) Create a flattened yesClicks object from yesClickEvents array
+        var flattenedYesClicks = {};
+        yesClickEvents.forEach(function(event, index) {
+          flattenedYesClicks["yesClick_" + index + "_phase"] = event.phase;
+          if (event.phase === "actual") {
+            flattenedYesClicks["yesClick_" + index + "_group"] = event.group;
+            flattenedYesClicks["yesClick_" + index + "_property"] = event.property;
+          }
+          flattenedYesClicks["yesClick_" + index + "_direction"] = event.direction;
+          flattenedYesClicks["yesClick_" + index + "_shift"] = event.shift;
+          flattenedYesClicks["yesClick_" + index + "_filename"] = event.filename;
+        });
+
+        // C) Combine everything into one final payload with participant and object info
         var finalPayload = {
-          allTrials: jsPsychDataArray,
-          yesClicks: yesClickEvents
+          participantID: "user123",
+          experimentID: "exp_456",
+          selectedObject: window.selectedObject,
+          allTrials: jsPsychDataArray
         };
 
-        // C) Post the data to your AWS endpoint
+        // Merge the flattened yes click data into the final payload
+        Object.assign(finalPayload, flattenedYesClicks);
+
+        // D) Post the data to your AWS endpoint
         var AWS_ENDPOINT = "https://i7nc0ict3h.execute-api.ap-southeast-1.amazonaws.com/storedata";
 
         fetch(AWS_ENDPOINT, {
