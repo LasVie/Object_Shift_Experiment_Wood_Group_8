@@ -2,10 +2,10 @@
 <html>
 <head>
   <title>Visual Perception Experiment</title>
-  <!-- Include jsPsych core and the needed plugin -->
+  <!-- Include jsPsych core and plugin -->
   <script src="jspsych/dist/jspsych.js"></script>
   <script src="jspsych/dist/plugin-html-button-response.js"></script>
-  <!-- Include the default jsPsych CSS for basic styling -->
+  <!-- Include jsPsych default CSS -->
   <link href="jspsych/dist/jspsych.css" rel="stylesheet" type="text/css" />
   <style>
     p { text-align: justify; }
@@ -41,9 +41,7 @@
       padding: 10px 20px;
       cursor: pointer;
     }
-    .jspsych-btn:hover {
-      background-color: #45a049;
-    }
+    .jspsych-btn:hover { background-color: #45a049; }
     /* Fixed container for YES button */
     #yes-button-container {
       position: fixed;
@@ -117,25 +115,25 @@
       border-radius: 50%;
       background: conic-gradient(#4CAF50 0deg, #4CAF50 360deg, #ccc 360deg, #ccc 360deg);
       z-index: 1000;
+      display: none;
     }
   </style>
-  <!-- mTurk Integration: Extract query parameters and generate unique survey code -->
+  <!-- mTurk Integration: Generate Unique Survey Code -->
   <script>
-    // mTurk appends a query parameter "workerId" to your URL.
+    // mTurk automatically appends "workerId" to the URL.
     const urlParams = new URLSearchParams(window.location.search);
     const workerId = urlParams.get("workerId") || "TEST";
-    // Multiply current day by 25 and append 4 random digits
+    // Use the current day multiplied by 25, then append four random digits.
     const today = new Date().getDate();
     function generateRandomDigits(n) {
       let result = '';
       for (let i = 0; i < n; i++) {
-        result += Math.floor(Math.random() * 10);  // random digit from 0 to 9
+        result += Math.floor(Math.random() * 10);
       }
       return result;
     }
     const randomDigits = generateRandomDigits(4);
     const uniqueSurveyCode = workerId + (today * 25) + randomDigits;
-    // Store it globally as participantID.
     window.participantID = uniqueSurveyCode;
     console.log("Unique Survey Code:", uniqueSurveyCode);
   </script>
@@ -143,18 +141,14 @@
 <body>
   <!-- Container for YES button -->
   <div id="yes-button-container"></div>
-  <!-- Circular progress indicator (only visible during the actual experiment) -->
-  <div id="progress-circle" style="display: none;"></div>
-
+  <!-- Circular progress indicator -->
+  <div id="progress-circle"></div>
   <script>
     /*********************************************************
      * GLOBAL VARIABLES & HELPER FUNCTIONS
      *********************************************************/
-    // Global array to store YES click events.
     var yesClickEvents = [];
-    // Clear yesClickEvents when actual experiment starts.
     function clearYesClickEvents() { yesClickEvents = []; }
-    // Global flag for pausing.
     var demoPaused = false;
     function pauseAwareTimeout(callback, delay) {
       setTimeout(function waitForResume() {
@@ -165,22 +159,15 @@
         }
       }, delay);
     }
-    // (Optional) parse pixel shift info from a filename.
     function parseShiftFromFilename(url) {
       var match = url.match(/_(L|R|U|D)(\d+)px/);
       if (!match) return { direction: null, shift: 0 };
       return { direction: match[1], shift: parseInt(match[2], 10) };
     }
-    /*********************************************************
-     * Initialize jsPsych
-     *********************************************************/
     var jsPsych = initJsPsych({
       override_safe_mode: true,
       experiment_width: 1000
     });
-    /*********************************************************
-     * Fullscreen Listener & Overlay
-     *********************************************************/
     document.addEventListener("fullscreenchange", function () {
       if (!document.fullscreenElement) {
         demoPaused = true;
@@ -218,9 +205,7 @@
             if (typeof jsPsych.resumeExperiment === "function") {
               jsPsych.resumeExperiment();
             }
-          }).catch(function (err) {
-            console.error("Error re-entering full screen:", err);
-          });
+          }).catch(function (err) { console.error("Error re-entering full screen:", err); });
         };
         promptBox.appendChild(btnQuit);
         promptBox.appendChild(btnResume);
@@ -232,8 +217,6 @@
       }
     });
   </script>
-
-  <!-- Object and Group Definitions -->
   <script>
     var objectNames = [
       "Book Shelves", "Chess", "Wheel", "Food Platter", "Fruits",
@@ -246,19 +229,13 @@
       "Group4": ["Center_125%_Plain", "Center_75%_Plain"],
       "Group5": ["Center_100%_PatternHoriz", "Center_100%_PatternVert", "Center_100%_Messy"]
     };
-    function getRandomElement(arr) {
-      return arr[Math.floor(Math.random() * arr.length)];
-    }
+    function getRandomElement(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
   </script>
-
-  <!-- Function to fetch image filenames -->
   <script>
     function fetchImageFilenames(searchKey) {
       return fetch("https://lasvientuexperimentdata.s3.ap-southeast-1.amazonaws.com/Rendered+Images/filenames.json")
         .then(response => {
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-          }
+          if (!response.ok) { throw new Error(`HTTP error! status: ${response.status}`); }
           return response.json();
         })
         .then(data => {
@@ -268,21 +245,17 @@
         });
     }
   </script>
-
-  <!-- jsPsych Timeline Components -->
   <script>
     /*************** 1) Welcome Page ***************/
     var welcomePage = {
       type: jsPsychHtmlButtonResponse,
       stimulus: `
-        <img src="logo/NTU Logo.png" alt="NTU Logo" class="university-logo" style="height: 230px; width: auto;">
+        <img src="logo/NTU Logo.png" alt="NTU Logo" class="university-logo" style="height:230px; width:auto;">
         <div class="welcome-container">
           <h1>Visual Perception Experiment</h1>
           <p>
-            This study aims to evaluate the sensitivity of the human visual system
-            to subtle shifts in the position of a salient object. You will see images
-            where a key object may be displaced in various directions. Your task is
-            to detect these shifts.
+            This study aims to evaluate the sensitivity of the human visual system to subtle shifts in the position of a salient object.
+            You will see images where a key object may be displaced in various directions. Your task is to detect these shifts.
           </p>
           <p>
             <strong>Important:</strong> This experiment must be done on a desktop or laptop in full screen mode.
@@ -295,16 +268,16 @@
         </div>
       `,
       choices: ['Continue'],
-      on_load: function () {
+      on_load: function() {
         var btn = document.querySelector(".jspsych-btn");
         btn.disabled = true;
-        document.getElementById("device-confirm").addEventListener("change", function () {
+        document.getElementById("device-confirm").addEventListener("change", function() {
           btn.disabled = !this.checked;
         });
       },
-      on_finish: function () {
+      on_finish: function() {
         if (!document.fullscreenElement) {
-          document.documentElement.requestFullscreen().catch(function (err) {
+          document.documentElement.requestFullscreen().catch(function(err) {
             console.error("Error attempting to enable full screen:", err);
           });
         }
@@ -315,20 +288,20 @@
     var demoPage = {
       type: jsPsychHtmlButtonResponse,
       stimulus: `
-        <img src="logo/NTU Logo.png" alt="NTU Logo" class="university-logo" style="height: 230px; width: auto;">
-        <div style="text-align: center;">
-          <h3 style="margin-bottom: 5px;">DEMO: The shifted image will move <b>to the left</b></h3>
-          <div style="display: flex; justify-content: center; align-items: center; margin-top: 10px;">
-            <div style="margin: 5px; text-align: center;">
-              <img src="image/00001_Cube_Center_100_Plain_N0px.png" alt="Reference Image" style="width: 300px; height: auto;"><br>
+        <img src="logo/NTU Logo.png" alt="NTU Logo" class="university-logo" style="height:230px; width:auto;">
+        <div style="text-align:center;">
+          <h3 style="margin-bottom:5px;">DEMO: The shifted image will move <b>to the left</b></h3>
+          <div style="display:flex; justify-content:center; align-items:center; margin-top:10px;">
+            <div style="margin:5px; text-align:center;">
+              <img src="image/00001_Cube_Center_100_Plain_N0px.png" alt="Reference Image" style="width:300px; height:auto;"><br>
               <span>Reference Image</span>
             </div>
-            <div style="margin: 5px; text-align: center;">
-              <img src="image/00031_Cube_Center_100_Plain_L30px.png" alt="Shifted Image" style="width: 300px; height: auto;"><br>
+            <div style="margin:5px; text-align:center;">
+              <img src="image/00031_Cube_Center_100_Plain_L30px.png" alt="Shifted Image" style="width:300px; height:auto;"><br>
               <span>Shifted Image</span>
             </div>
           </div>
-          <div style="margin-top: 10px; text-align: left; max-width: 1200px; margin-left: auto; margin-right: auto; font-size: 14px; line-height: 1.2;">
+          <div style="margin-top:10px; text-align:left; max-width:1200px; margin-left:auto; margin-right:auto; font-size:14px; line-height:1.2;">
             <p>
               In this demo, the left image is a fixed reference, while the right image will update periodically.
               The shifted image refreshes every 3 seconds. Between updates, it and the YES button will be temporarily disabled,
@@ -345,17 +318,17 @@
               Please confirm you have read these instructions.
             </p>
           </div>
-          <div style="margin-top: 10px; font-size: 14px;">
+          <div style="margin-top:10px; font-size:14px;">
             <input type="checkbox" id="demo-confirm" name="demo-confirm">
             <label for="demo-confirm">I have read and understood the instructions.</label>
           </div>
         </div>
       `,
       choices: ['Start DEMO'],
-      on_load: function () {
+      on_load: function() {
         var btn = document.querySelector(".jspsych-btn");
         btn.disabled = true;
-        document.getElementById("demo-confirm").addEventListener("change", function () {
+        document.getElementById("demo-confirm").addEventListener("change", function() {
           btn.disabled = !this.checked;
         });
       }
@@ -367,7 +340,7 @@
       stimulus: '<div id="dynamic-demo-container"></div>',
       choices: ['YES'],
       response_ends_trial: false,
-      on_load: function () {
+      on_load: function() {
         var btn = document.querySelector(".jspsych-btn");
         var yesBtnContainer = document.getElementById('yes-button-container');
         yesBtnContainer.appendChild(btn);
@@ -380,8 +353,7 @@
         var demoImages = [];
         var imageFilenames = [];
         var loadingStartTime = Date.now();
-        var trialFinished = false;  // Guard against actions after trial ends
-
+        var trialFinished = false;
         imageFilenames.push("00001_Cube_Center_100_Plain_N0px.png");
         for (var j = 2; j <= numImages; j++) {
           var shift = j - 1;
@@ -389,7 +361,6 @@
           var filename = padded + "_Cube_Center_100_Plain_L" + shift + "px.png";
           imageFilenames.push(filename);
         }
-
         var loadingScreenTimeout = setTimeout(function () {
           container.innerHTML = `
             <div class="loading-container">
@@ -410,7 +381,6 @@
             }
           }, 100);
         }, 100);
-
         function loadImage(src) {
           return new Promise(function (resolve, reject) {
             var img = new Image();
@@ -419,7 +389,6 @@
             img.src = "image/" + encodeURIComponent(src);
           });
         }
-
         Promise.all(imageFilenames.map(loadImage)).then(function (images) {
           demoImages = images;
           var loadingDuration = Date.now() - loadingStartTime;
@@ -432,9 +401,6 @@
         }).catch(function (err) {
           container.innerHTML = "<p>Error loading image: " + err + "</p>";
         });
-
-        // Use the previous logic: display image for 3 sec, then hide for 1 sec,
-        // update to the next image.
         function nextImage() {
           if (trialFinished) return;
           if (currentIndex >= demoImages.length - 1) {
@@ -445,7 +411,6 @@
           btn.style.opacity = "0.5";
           var shiftImg = document.getElementById("shift-image");
           if (!shiftImg) return;
-          // Hide image for a 1-sec break.
           shiftImg.style.visibility = "hidden";
           pauseAwareTimeout(function () {
             currentIndex++;
@@ -456,13 +421,12 @@
             pauseAwareTimeout(nextImage, 3000);
           }, 1000);
         }
-
         function startCountdown() {
           btn.style.display = "none";
           container.innerHTML = `
-            <div id="demo-header" style="text-align: center; margin-top: 10px;">
-              <h3 style="margin: 0 0 10px 0;">
-                Saliency object is moving <span style="font-size:1.5em; text-decoration: underline;">LEFT</span>
+            <div id="demo-header" style="text-align:center; margin-top:10px;">
+              <h3 style="margin:0 0 10px 0;">
+                Saliency object is moving <span style="font-size:1.5em; text-decoration:underline;">LEFT</span>
               </h3>
               <h3 id="countdown" style="font-size:72px; font-weight:bold; margin:100px;">3</h3>
             </div>
@@ -477,30 +441,26 @@
             var cd = document.getElementById("countdown");
             if (!cd) return;
             cd.innerHTML = count;
-            if (count <= 0) {
-              startDemo();
-            } else {
-              setTimeout(countdownTick, 1000);
-            }
+            if (count <= 0) { startDemo(); }
+            else { setTimeout(countdownTick, 1000); }
           }
           setTimeout(countdownTick, 1000);
         }
-
         var currentIndex = 0;
         function startDemo() {
           container.innerHTML = `
-            <div id="demo-header" style="text-align: center; margin-top: 10px;">
-              <h3 style="margin: 0 0 10px 0;">
-                Saliency object is moving <span style="font-size:1.5em; text-decoration: underline;">LEFT</span>
+            <div id="demo-header" style="text-align:center; margin-top:10px;">
+              <h3 style="margin:0 0 10px 0;">
+                Saliency object is moving <span style="font-size:1.5em; text-decoration:underline;">LEFT</span>
               </h3>
             </div>
-            <div id="demo-content" style="display: flex; justify-content: center; align-items: center;">
-              <div style="margin: 5px; text-align: center;">
+            <div id="demo-content" style="display:flex; justify-content:center; align-items:center;">
+              <div style="margin:5px; text-align:center;">
                 <img id="ref-image" src="${demoImages[0].src}" class="demo-image">
                 <br><span>Reference Image</span>
               </div>
-              <div style="margin: 5px; text-align: center;">
-                <img id="shift-image" src="${demoImages[currentIndex].src}" class="demo-image" style="visibility: visible;">
+              <div style="margin:5px; text-align:center;">
+                <img id="shift-image" src="${demoImages[currentIndex].src}" class="demo-image" style="visibility:visible;">
                 <br><span>Shifted Image</span>
               </div>
             </div>
@@ -511,7 +471,6 @@
           btn.style.opacity = "1";
           pauseAwareTimeout(nextImage, 3000);
         }
-
         btn.addEventListener("click", function () {
           if (trialFinished) return;
           trialFinished = true;
@@ -527,24 +486,20 @@
           }
           finishTrial();
         });
-
         function finishTrial() {
           var btn = document.querySelector(".jspsych-btn");
-          if (btn && btn.parentNode) {
-            btn.parentNode.removeChild(btn);
-          }
+          if (btn && btn.parentNode) { btn.parentNode.removeChild(btn); }
           var trialData = { chosen_shift: currentIndex };
           jsPsych.finishTrial(trialData);
         }
       }
     };
 
-    /*************** 4) Demo Completion Page ***************/
     var demoCompleteTrial = {
       type: jsPsychHtmlButtonResponse,
       stimulus: `
         <h2 style="text-align:center;">You have completed the demo</h2>
-        <p style="max-width: 800px; margin: 0 auto; font-size: 16px; text-align: left;">
+        <p style="max-width:800px; margin:0 auto; font-size:16px; text-align:left;">
           <strong>Rules Recap:</strong><br>
           1) The reference image is constant.<br>
           2) The shifted image updates every 3 seconds.<br>
@@ -556,12 +511,9 @@
         </p>
       `,
       choices: ['Redo DEMO', 'START ACTUAL EXPERIMENT'],
-      on_finish: function () {
-        // The demo timeline’s loop_function will check data.response.
-      }
+      on_finish: function () { /* Loop back handled by timeline loop_function */ }
     };
 
-    /*************** 5) Experiment Instructions Page ***************/
     var experimentInstructions = {
       type: jsPsychHtmlButtonResponse,
       stimulus: function() {
@@ -570,7 +522,7 @@
         var props = groups[window.selectedGroupKey];
         var setsCount = props.length;
         return `
-          <div style="text-align: center;">
+          <div style="text-align:center;">
             <h2>Actual Experiment:</h2>
             <p>The experiment will now run for a series of keys based on one randomly selected object and group.</p>
             <p>
@@ -579,9 +531,8 @@
             </p>
             <p style="color:red; font-weight:bold;">WARNING: Refreshing the page will cause all progress to be lost.</p>
             <p>
-              In each set, the same salient object will be used. The object will shift in 4 directions –
-              Left, Right, Up, and Down. After each directional shift, please press <strong>YES</strong>
-              once you observe a difference.
+              In each set, the same salient object will be used. The object will shift in 4 directions – Left, Right, Up, and Down.
+              After each directional shift, please press <strong>YES</strong> once you observe a difference.
             </p>
             <p>Once ready, please press START.</p>
           </div>
@@ -590,7 +541,6 @@
       choices: ['START']
     };
 
-    /*************** 6) Multi-Key Actual Experiment Trial ***************/
     var multiKeyExperimentTrial = {
       type: jsPsychHtmlButtonResponse,
       stimulus: '<div id="actual-exp-container"></div>',
@@ -609,32 +559,25 @@
         yesBtnContainer.style.display = "none";
         btn.style.display = "none";
 
-        // Show the progress circle (at bottom left).
+        // Display the circular progress indicator.
         document.getElementById("progress-circle").style.display = "block";
-        // Compute total sets: (properties.length * 4)
         var properties = groups[window.selectedGroupKey];
         var totalSets = properties.length * 4;
         var completedSets = 0;
-        // Function to update progress circle based on completedSets.
         function updateProgressCircle() {
           var angle = ((totalSets - completedSets) / totalSets) * 360;
           document.getElementById("progress-circle").style.background =
             `conic-gradient(#4CAF50 0deg, #4CAF50 ${angle}deg, #ccc ${angle}deg, #ccc 360deg)`;
         }
-        // Initialize progress
         updateProgressCircle();
 
-        var container = document.getElementById("actual-exp-container");
         console.log("Selected object:", window.selectedObject);
         console.log("Selected group:", window.selectedGroupKey);
         console.log("Properties:", properties);
         var experimentResults = [];
-
         function runExperimentForProperty(index) {
           if (index >= properties.length) {
-            if (btn.parentNode) {
-              btn.parentNode.removeChild(btn);
-            }
+            if (btn.parentNode) { btn.parentNode.removeChild(btn); }
             var trialData = {
               object: window.selectedObject,
               group: window.selectedGroupKey,
@@ -658,6 +601,7 @@
         runExperimentForProperty(0);
 
         function runDirectionalExperiment(searchKey, propertyName, callback) {
+          var container = document.getElementById("actual-exp-container");
           container.innerHTML = `
             <div class="loading-container">
               <p>Loading experiment, please wait...</p>
@@ -667,18 +611,13 @@
             </div>
           `;
           document.getElementById("yes-button-container").style.display = "none";
-
           var loadingBar = document.getElementById("exp-loading-bar");
           var progress = 0;
           var loadingInterval = setInterval(function () {
             progress += 5;
-            if (progress >= 100) {
-              clearInterval(loadingInterval);
-            } else {
-              loadingBar.style.width = progress + "%";
-            }
+            if (progress >= 100) { clearInterval(loadingInterval); }
+            else { loadingBar.style.width = progress + "%"; }
           }, 100);
-
           fetchImageFilenames(searchKey).then(function(fileNames) {
             if (fileNames.length === 0) {
               container.innerHTML = "<p>No matching images found for key: " + searchKey + ".</p>";
@@ -734,7 +673,6 @@
               var currentImageIndex = 0;
               var phaseResults = {};
 
-              // Hide YES button until phase countdown finishes
               btn.style.display = "none";
               btn.disabled = true;
               btn.style.opacity = "0.5";
@@ -761,7 +699,6 @@
                       direction: parsed.direction
                     };
                   }
-                  // Increase progress: one set completed
                   completedSets++;
                   updateProgressCircle();
                   moveToNextPhase();
@@ -773,8 +710,8 @@
                 btn.style.display = "none";
                 var phase = phases[currentPhaseIndex];
                 container.innerHTML = `
-                  <div id="exp-header" style="text-align: center; margin-top: 10px;">
-                    <h3 style="margin: 0 0 10px 0;">Saliency object will be moving <span style="font-size:1.5em; text-decoration: underline;">${phase.label}</span></h3>
+                  <div id="exp-header" style="text-align:center; margin-top:10px;">
+                    <h3 style="margin:0 0 10px 0;">Saliency object will be moving <span style="font-size:1.5em; text-decoration:underline;">${phase.label}</span></h3>
                     <h3 id="exp-countdown" style="font-size:72px; font-weight:bold; margin:100px;">3</h3>
                   </div>
                 `;
@@ -786,11 +723,8 @@
                   }
                   count--;
                   document.getElementById("exp-countdown").innerHTML = count;
-                  if (count <= 0) {
-                    startPhase();
-                  } else {
-                    setTimeout(expCountdownTick, 1000);
-                  }
+                  if (count <= 0) { startPhase(); }
+                  else { setTimeout(expCountdownTick, 1000); }
                 }
                 setTimeout(expCountdownTick, 1000);
               }
@@ -807,16 +741,16 @@
               function showPhaseImages() {
                 var phase = phases[currentPhaseIndex];
                 container.innerHTML = `
-                  <div id="exp-header" style="text-align: center; margin-top: 10px;">
-                    <h3 style="margin: 0 0 10px 0;">Saliency object will be moving <span style="font-size:1.5em; text-decoration: underline;">${phase.label}</span></h3>
+                  <div id="exp-header" style="text-align:center; margin-top:10px;">
+                    <h3 style="margin:0 0 10px 0;">Saliency object will be moving <span style="font-size:1.5em; text-decoration:underline;">${phase.label}</span></h3>
                   </div>
-                  <div id="exp-content" style="display: flex; justify-content: center; align-items: center;">
-                    <div style="margin: 5px; text-align: center;">
+                  <div id="exp-content" style="display:flex; justify-content:center; align-items:center;">
+                    <div style="margin:5px; text-align:center;">
                       <img id="exp-ref-image" src="${originalImage.src}" class="demo-image">
                       <br><span>Reference Image</span>
                     </div>
-                    <div style="margin: 5px; text-align: center;">
-                      <img id="exp-shift-image" src="${phase.images[currentImageIndex].src}" class="demo-image" style="visibility: visible;">
+                    <div style="margin:5px; text-align:center;">
+                      <img id="exp-shift-image" src="${phase.images[currentImageIndex].src}" class="demo-image" style="visibility:visible;">
                       <br><span>Shifted Image</span>
                     </div>
                   </div>
@@ -864,17 +798,15 @@
                 }
               }
 
-              // Initialize completedSets variable and update progress circle.
+              // Global variables for circular progress indicator.
               var completedSets = 0;
+              var totalSets = properties.length * 4;
               updateProgressCircle();
               function updateProgressCircle() {
                 var angle = ((totalSets - completedSets) / totalSets) * 360;
                 document.getElementById("progress-circle").style.background =
                   `conic-gradient(#4CAF50 0deg, #4CAF50 ${angle}deg, #ccc ${angle}deg, #ccc 360deg)`;
               }
-              // totalSets is the total number of sets in this trial.
-              var totalSets = properties.length * 4;
-
               startPhaseCountdown();
             }).catch(function (err) {
               container.innerHTML = "<p>Error loading images: " + err + "</p>";
@@ -886,19 +818,17 @@
       }
     };
 
-    /*************** 7) Final "Submit Data" Page ***************/
     var finalSubmissionTrial = {
       type: jsPsychHtmlButtonResponse,
       stimulus: `
         <div style="text-align:center;">
           <h2>Submit Your Data</h2>
           <p>Please press the button below to submit your data.</p>
-          <p style="color:red; font-weight:bold;">Warning: Do not refresh the page during the experiment; refreshing will cause all progress to be lost.</p>
+          <p style="color:red; font-weight:bold;">WARNING: Do not refresh the page during the experiment; refreshing will cause all progress to be lost.</p>
         </div>
       `,
       choices: ['Submit Data'],
       on_finish: function() {
-        // A) Collect trial data summary.
         var jsPsychDataArray = jsPsych.data.get().values();
         var trialSummary = jsPsychDataArray.map(function(trial) {
           return {
@@ -909,7 +839,6 @@
             chosenShift: trial.chosen_shift !== undefined ? trial.chosen_shift : null
           };
         });
-        // B) Build the final payload using the unique survey code (mTurk participantID)
         var finalPayload = {
           participantID: window.participantID,
           selectedObject: window.selectedObject || null,
@@ -917,7 +846,6 @@
           yesClicks: yesClickEvents,
           trialSummary: trialSummary
         };
-        // C) Post the payload to your AWS endpoint.
         var AWS_ENDPOINT = "https://i7nc0ict3h.execute-api.ap-southeast-1.amazonaws.com/storedata";
         fetch(AWS_ENDPOINT, {
           method: "POST",
@@ -934,7 +862,6 @@
       }
     };
 
-    /*************** 8) Final Survey Code Page ***************/
     var finalCodeTrial = {
       type: jsPsychHtmlButtonResponse,
       stimulus: `
@@ -947,12 +874,11 @@
       choices: ['Finish']
     };
 
-    /*************** Build the Master Timeline ***************/
     var timeline = [];
     timeline.push(welcomePage);
     var demoTimeline = {
       timeline: [demoPage, dynamicDemoTrial, demoCompleteTrial],
-      loop_function: function (data) {
+      loop_function: function(data) {
         var last_trial = data.values()[data.values().length - 1];
         return last_trial.response === 0;
       }
