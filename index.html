@@ -2,44 +2,35 @@
 <html>
 <head>
   <title>Visual Perception Experiment</title>
-
   <!-- Include jsPsych core and the needed plugin -->
   <script src="jspsych/dist/jspsych.js"></script>
   <script src="jspsych/dist/plugin-html-button-response.js"></script>
-
   <!-- Include the default jsPsych CSS for basic styling -->
   <link href="jspsych/dist/jspsych.css" rel="stylesheet" type="text/css" />
-
   <style>
-    p {
-      text-align: justify;
-    }
-
-    /* Style for the university logo in top-left corner */
+    p { text-align: justify; }
+    /* University logo */
     .university-logo {
       position: absolute;
       top: 10px;
       left: 10px;
       height: 60px;
     }
-
-    /* Container for welcome text */
+    /* Welcome text container */
     .welcome-container {
       margin-top: 20px;
       margin-left: 100px;
       margin-right: 20px;
       text-align: left;
     }
-
-    /* Demo/Experiment images: fill as much of the screen as possible without overflowing */
+    /* Demo/Experiment image styling */
     .demo-image {
       max-width: 45vw;
       max-height: calc(100vh - 150px);
       width: auto;
       height: auto;
     }
-
-    /* Styling the YES button for dynamic trials */
+    /* jsPsych button styling */
     .jspsych-btn {
       font-weight: bold;
       font-size: 20px;
@@ -50,20 +41,17 @@
       padding: 10px 20px;
       cursor: pointer;
     }
-
     .jspsych-btn:hover {
       background-color: #45a049;
     }
-
-    /* Dedicated container for the YES button (fixed at bottom-right) */
+    /* Fixed position container for YES button */
     #yes-button-container {
       position: fixed;
-      bottom: 0px;
+      bottom: 0;
       right: 40px;
       z-index: 1000;
     }
-
-    /* Fullscreen overlay style */
+    /* Fullscreen overlay */
     #fullscreen-overlay {
       position: fixed;
       top: 0;
@@ -76,7 +64,6 @@
       align-items: center;
       justify-content: center;
     }
-
     #fullscreen-overlay .prompt-box {
       background-color: white;
       padding: 20px;
@@ -85,7 +72,6 @@
       text-align: center;
       max-width: 90%;
     }
-
     #fullscreen-overlay button {
       font-size: 16px;
       margin: 10px;
@@ -94,11 +80,9 @@
       border-radius: 4px;
       cursor: pointer;
     }
-
     #fullscreen-overlay button:hover {
       opacity: 0.9;
     }
-
     /* Improved Loading Screen Styles */
     .loading-container {
       display: flex;
@@ -108,10 +92,7 @@
       font-family: Arial, sans-serif;
       margin-top: 50px;
     }
-    .loading-container p {
-      font-size: 24px;
-      margin-bottom: 10px;
-    }
+    .loading-container p { font-size: 24px; margin-bottom: 10px; }
     .progress-bar-container {
       width: 300px;
       height: 20px;
@@ -132,22 +113,18 @@
 </head>
 
 <body>
-  <!-- Container where the YES button will be dynamically moved -->
+  <!-- Container for moving the YES button dynamically -->
   <div id="yes-button-container"></div>
 
   <script>
     /*********************************************************
-     * GLOBALS for fix #1 & #2
+     * GLOBAL VARIABLES & HELPER FUNCTIONS
      *********************************************************/
-    // We'll store all "YES" clicks (for both Demo & Actual experiment) in this array:
+    // Global array to store YES click events
     var yesClickEvents = [];
-
-    // Helper flag to pause the experiment if fullscreen is exited
+    // Global flag to pause the experiment if fullscreen is lost
     var demoPaused = false;
 
-    /*********************************************************
-     * Pause-aware timeout helper (prevents timers from running while paused)
-     *********************************************************/
     function pauseAwareTimeout(callback, delay) {
       setTimeout(function waitForResume() {
         if (demoPaused) {
@@ -158,18 +135,11 @@
       }, delay);
     }
 
-    /*********************************************************
-     * Helper to parse pixel shift from a filename (e.g., "_L25px")
-     *********************************************************/
+    // Simple parser for filenames; if needed later
     function parseShiftFromFilename(url) {
       var match = url.match(/_(L|R|U|D)(\d+)px/);
-      if (!match) {
-        return { direction: null, shift: 0 };
-      }
-      return {
-        direction: match[1],
-        shift: parseInt(match[2], 10)
-      };
+      if (!match) return { direction: null, shift: 0 };
+      return { direction: match[1], shift: parseInt(match[2], 10) };
     }
 
     /*********************************************************
@@ -181,7 +151,7 @@
     });
 
     /*********************************************************
-     * Full Screen Change Listener + Overlay
+     * Fullscreen Listener + Overlay
      *********************************************************/
     document.addEventListener("fullscreenchange", function () {
       if (!document.fullscreenElement) {
@@ -235,7 +205,7 @@
     });
   </script>
 
-  <!-- Script for object & group definitions and helper functions -->
+  <!-- Object and Group Definitions -->
   <script>
     var objectNames = [
       "Book Shelves", "Chess", "Wheel", "Food Platter", "Fruits",
@@ -255,7 +225,7 @@
     }
   </script>
 
-  <!-- Function to fetch image filenames from your JSON file -->
+  <!-- Function to fetch image filenames from remote JSON -->
   <script>
     function fetchImageFilenames(searchKey) {
       return fetch("https://lasvientuexperimentdata.s3.ap-southeast-1.amazonaws.com/Rendered+Images/filenames.json")
@@ -273,11 +243,9 @@
     }
   </script>
 
-  <!-- Define jsPsych timeline components -->
+  <!-- jsPsych Timeline Components -->
   <script>
-    /*********************************************************
-     * 1) Welcome Page
-     *********************************************************/
+    /*************** 1) Welcome Page ***************/
     var welcomePage = {
       type: jsPsychHtmlButtonResponse,
       stimulus: `
@@ -317,9 +285,7 @@
       }
     };
 
-    /*********************************************************
-     * 2) Demo Instructions Page
-     *********************************************************/
+    /*************** 2) Demo Instructions Page ***************/
     var demoPage = {
       type: jsPsychHtmlButtonResponse,
       stimulus: `
@@ -369,9 +335,7 @@
       }
     };
 
-    /*********************************************************
-     * 3) Dynamic Demo Trial (uses static images for demonstration)
-     *********************************************************/
+    /*************** 3) Dynamic Demo Trial ***************/
     var dynamicDemoTrial = {
       type: jsPsychHtmlButtonResponse,
       stimulus: '<div id="dynamic-demo-container"></div>',
@@ -390,9 +354,9 @@
         var demoImages = [];
         var imageFilenames = [];
         var loadingStartTime = Date.now();
-        var trialFinished = false;  // guard so we don't manipulate DOM after finish
+        var trialFinished = false;  // Guard to prevent actions after trial ends
 
-        // We'll push 31 images: 00001_Cube_Center_100_Plain_N0px.png, then L1px..L30px
+        // Build filenames for demo images
         imageFilenames.push("00001_Cube_Center_100_Plain_N0px.png");
         for (var j = 2; j <= numImages; j++) {
           var shift = j - 1;
@@ -549,9 +513,7 @@
       }
     };
 
-    /*********************************************************
-     * 4) Demo Completion Page
-     *********************************************************/
+    /*************** 4) Demo Completion Page ***************/
     var demoCompleteTrial = {
       type: jsPsychHtmlButtonResponse,
       stimulus: `
@@ -569,13 +531,11 @@
       `,
       choices: ['Redo DEMO', 'START ACTUAL EXPERIMENT'],
       on_finish: function (data) {
-        // The demo timeline’s loop_function will check data.response to determine if a redo is needed.
+        // The demo timeline’s loop_function will check data.response.
       }
     };
 
-    /*********************************************************
-     * 5) Dynamic Experiment Instructions Page
-     *********************************************************/
+    /*************** 5) Experiment Instructions Page ***************/
     var experimentInstructions = {
       type: jsPsychHtmlButtonResponse,
       stimulus: function() {
@@ -603,11 +563,7 @@
       choices: ['START']
     };
 
-    /*********************************************************
-     * 6) Multi-Key Actual Experiment Trial
-     *    - For each property in the selected group, run 4 directions
-     *    - Each time the user clicks YES, log direction + pixel shift
-     *********************************************************/
+    /*************** 6) Multi-Key Actual Experiment Trial ***************/
     var multiKeyExperimentTrial = {
       type: jsPsychHtmlButtonResponse,
       stimulus: '<div id="actual-exp-container"></div>',
@@ -882,10 +838,7 @@
       }
     };
 
-    /*********************************************************
-     * 7) Final "Thank You" + Data Submission (AWS -> Lambda -> DynamoDB)
-     *    Custom Serialization with trialSummary at the end.
-     *********************************************************/
+    /*************** 7) Final Submission + Data Serialization ***************/
     var finalSubmissionTrial = {
       type: jsPsychHtmlButtonResponse,
       stimulus: `
@@ -897,57 +850,31 @@
       `,
       choices: ['Submit Data'],
       on_finish: function() {
-        // A) Collect jsPsych trial data.
+        // A) Get trial data summary.
         var jsPsychDataArray = jsPsych.data.get().values();
-
-        // B) Build the trialSummary by extracting key fields from each trial.
         var trialSummary = jsPsychDataArray.map(function(trial) {
           return {
             trialIndex: trial.trial_index,
             trialType: trial.trial_type,
             response: trial.response,
             rt: trial.rt,
-            chosenShift: trial.chosen_shift !== undefined ? trial.chosen_shift : undefined
+            chosenShift: trial.chosen_shift !== undefined ? trial.chosen_shift : null
           };
         });
 
-        // C) Process yesClickEvents into a custom structure.
-        var yesClicksClean = {
-          demo: [],
-          actual: {}
-        };
-        yesClickEvents.forEach(function(event) {
-          if (event.phase === "demo") {
-            yesClicksClean.demo.push({
-              direction: event.direction,
-              shift: event.shift,
-              filename: event.filename
-            });
-          } else if (event.phase === "actual") {
-            if (!yesClicksClean.actual[event.property]) {
-              yesClicksClean.actual[event.property] = {};
-            }
-            if (!yesClicksClean.actual[event.property][event.direction]) {
-              yesClicksClean.actual[event.property][event.direction] = [];
-            }
-            yesClicksClean.actual[event.property][event.direction].push({
-              group: event.group,
-              shift: event.shift,
-              filename: event.filename
-            });
-          }
-        });
-
-        // D) Build the final payload with trialSummary placed as the last key.
+        // B) Build the final payload as a plain object.
+        // This payload is constructed so that it has plain keys without DynamoDB
+        // attribute wrappers.
         var finalPayload = {
-          participantID: "user123",
+          participantID: "user123", // You might extract this from your experiment as needed.
           experimentID: "exp_456",
-          selectedObject: window.selectedObject,
-          yesClicks: yesClicksClean,
+          selectedObject: window.selectedObject || null,
+          group: window.selectedGroupKey || null,
+          yesClicks: yesClickEvents, // Array of objects, each with phase, group, property, direction, shift, filename.
           trialSummary: trialSummary
         };
 
-        // E) Post the final payload to your AWS endpoint.
+        // C) Post the final payload to your AWS endpoint.
         var AWS_ENDPOINT = "https://i7nc0ict3h.execute-api.ap-southeast-1.amazonaws.com/storedata";
 
         fetch(AWS_ENDPOINT, {
@@ -960,7 +887,7 @@
         .then(response => response.json())
         .then(result => {
           console.log("Data posted successfully:", result);
-          // Optionally, display a success message or redirect.
+          // Optionally, redirect or display a success message.
         })
         .catch(error => {
           console.error("Error posting data:", error);
@@ -969,17 +896,14 @@
       }
     };
 
-    /*********************************************************
-     * Build the master timeline
-     *********************************************************/
+    /*************** Build the Master Timeline and Run jsPsych ***************/
     var timeline = [];
     timeline.push(welcomePage);
-
     var demoTimeline = {
       timeline: [demoPage, dynamicDemoTrial, demoCompleteTrial],
       loop_function: function (data) {
         var last_trial = data.values()[data.values().length - 1];
-        return last_trial.response === 0;
+        return last_trial.response === 0; // Redo DEMO if response === 0
       }
     };
     timeline.push(demoTimeline);
