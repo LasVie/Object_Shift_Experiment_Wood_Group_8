@@ -399,6 +399,22 @@
           container.innerHTML = "<p>Error loading image: " + err + "</p>";
         });
 
+        // Helper function to update the shifted image with onload callback
+        function updateShiftImage(newSrc, callback) {
+          var shiftImg = document.getElementById("shift-image");
+          if (!shiftImg) return;
+          shiftImg.style.visibility = "hidden";
+          shiftImg.onload = function() {
+            shiftImg.style.visibility = "visible";
+            shiftImg.onload = null;
+            callback();
+          };
+          shiftImg.src = newSrc;
+          if (shiftImg.complete) {  // If cached, trigger callback immediately.
+            shiftImg.onload();
+          }
+        }
+
         function startCountdown() {
           btn.style.display = "none";
           container.innerHTML = `
@@ -428,7 +444,7 @@
           setTimeout(countdownTick, 1000);
         }
 
-        var currentIndex = 1;
+        var currentIndex = 0;
         function startDemo() {
           container.innerHTML = `
             <div id="demo-header" style="text-align: center; margin-top: 10px;">
@@ -442,7 +458,7 @@
                 <br><span>Reference Image</span>
               </div>
               <div style="margin: 5px; text-align: center;">
-                <img id="shift-image" src="${demoImages[currentIndex].src}" class="demo-image" style="visibility: visible;">
+                <img id="shift-image" src="${demoImages[0].src}" class="demo-image" style="visibility: visible;">
                 <br><span>Shifted Image</span>
               </div>
             </div>
@@ -456,25 +472,19 @@
 
         function nextImage() {
           if (trialFinished) return;
-          var shiftImg = document.getElementById("shift-image");
-          if (!shiftImg) return;
+          if (currentIndex >= demoImages.length - 1) {
+            finishTrial();
+            return;
+          }
           btn.disabled = true;
           btn.style.opacity = "0.5";
-          shiftImg.style.visibility = "hidden";
-          pauseAwareTimeout(function () {
-            if (trialFinished) return;
-            if (currentIndex < demoImages.length - 1) {
-              currentIndex++;
-              if (!shiftImg) return;
-              shiftImg.src = demoImages[currentIndex].src;
-              shiftImg.style.visibility = "visible";
-              btn.disabled = false;
-              btn.style.opacity = "1";
-              pauseAwareTimeout(nextImage, 3000);
-            } else {
-              finishTrial();
-            }
-          }, 1000);
+          // Use the helper function to update the shifted image
+          updateShiftImage(demoImages[currentIndex+1].src, function () {
+            currentIndex++;
+            btn.disabled = false;
+            btn.style.opacity = "1";
+            pauseAwareTimeout(nextImage, 3000);
+          });
         }
 
         btn.addEventListener("click", function () {
@@ -529,12 +539,8 @@
     var experimentInstructions = {
       type: jsPsychHtmlButtonResponse,
       stimulus: function() {
-        // Force selectedGroupKey to "Group5" if it exists to test 3 sets.
-        if (Object.keys(groups).includes("Group5")) {
-          window.selectedGroupKey = "Group5";
-        } else {
-          window.selectedGroupKey = getRandomElement(Object.keys(groups));
-        }
+        // Randomly select a group from all available groups.
+        window.selectedGroupKey = getRandomElement(Object.keys(groups));
         window.selectedObject = getRandomElement(objectNames);
         var props = groups[window.selectedGroupKey];
         var setsCount = props.length;
@@ -580,7 +586,7 @@
         btn.style.display = "none";
 
         var container = document.getElementById("actual-exp-container");
-        var properties = groups[window.selectedGroupKey]; // For Group5, this is 3 properties.
+        var properties = groups[window.selectedGroupKey]; // For Group5, this is 3 properties, now treated equally.
         var experimentResults = [];
         function runExperimentForProperty(index) {
           if (index >= properties.length) {
@@ -708,6 +714,23 @@
                 moveToNextPhase();
               };
               btn.addEventListener("click", yesHandler);
+              
+              // Helper function for phase image update using onload.
+              function updatePhaseImage(newSrc, callback) {
+                var shiftImg = document.getElementById("exp-shift-image");
+                if (!shiftImg) return;
+                shiftImg.style.visibility = "hidden";
+                shiftImg.onload = function() {
+                  shiftImg.style.visibility = "visible";
+                  shiftImg.onload = null;
+                  callback();
+                };
+                shiftImg.src = newSrc;
+                if (shiftImg.complete) {
+                  shiftImg.onload();
+                }
+              }
+
               function startPhaseCountdown() {
                 phaseActive = false;
                 yesBtnContainer.style.display = "none";
@@ -766,27 +789,19 @@
               }
               function advancePhaseImage() {
                 if (!phaseActive) return;
-                var shiftImg = document.getElementById("exp-shift-image");
-                if (!shiftImg) return;
+                var phase = phases[currentPhaseIndex];
+                if (currentImageIndex >= phase.images.length - 1) {
+                  moveToNextPhase();
+                  return;
+                }
                 btn.disabled = true;
                 btn.style.opacity = "0.5";
-                shiftImg.style.visibility = "hidden";
-                pauseAwareTimeout(function () {
-                  if (!phaseActive) return;
-                  var phase = phases[currentPhaseIndex];
-                  if (currentImageIndex < phase.images.length - 1) {
-                    currentImageIndex++;
-                    shiftImg = document.getElementById("exp-shift-image");
-                    if (!shiftImg) return;
-                    shiftImg.src = phase.images[currentImageIndex].src;
-                    shiftImg.style.visibility = "visible";
-                    btn.disabled = false;
-                    btn.style.opacity = "1";
-                    pauseAwareTimeout(advancePhaseImage, 3000);
-                  } else {
-                    moveToNextPhase();
-                  }
-                }, 1000);
+                updatePhaseImage(phase.images[currentImageIndex+1].src, function() {
+                  currentImageIndex++;
+                  btn.disabled = false;
+                  btn.style.opacity = "1";
+                  pauseAwareTimeout(advancePhaseImage, 3000);
+                });
               }
               function moveToNextPhase() {
                 phaseActive = false;
