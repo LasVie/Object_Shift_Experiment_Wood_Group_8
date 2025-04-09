@@ -110,14 +110,13 @@
   </style>
   <!-- mTurk Integration: Extract query parameters and generate unique survey code -->
   <script>
-    // Extract the workerId from the URL (mTurk automatically appends this parameter)
+    // mTurk appends a query parameter "workerId" to your URL.
     const urlParams = new URLSearchParams(window.location.search);
     const workerId = urlParams.get("workerId") || "TEST";
-    // Use the current day of the month
+    // Multiply current day of month by 25 and concatenate with workerId.
     const today = new Date().getDate();
-    // Multiply the day by 25 and concatenate with workerId. For example, if today is the 10th, then 10*25=250.
     const uniqueSurveyCode = workerId + (today * 25);
-    // Store as participantID to be used in our data submission
+    // Store it globally for later use as participantID.
     window.participantID = uniqueSurveyCode;
     console.log("Unique Survey Code:", uniqueSurveyCode);
   </script>
@@ -412,8 +411,8 @@
           container.innerHTML = "<p>Error loading image: " + err + "</p>";
         });
 
-        // Use the previous logic: image is shown for 3 seconds, then hidden for 1 second,
-        // then update to the next image.
+        // Use the previous logic: display image for 3 sec, then hide for 1 sec,
+        // update to the next image.
         function nextImage() {
           if (trialFinished) return;
           if (currentIndex >= demoImages.length - 1) {
@@ -836,20 +835,18 @@
       }
     };
 
-    /*************** 7) Final "Thank You" + Data Submission ***************/
+    /*************** 7) Final "Submit Data" Page ***************/
     var finalSubmissionTrial = {
       type: jsPsychHtmlButtonResponse,
       stimulus: `
         <div style="text-align:center;">
-          <h2>Thank you!</h2>
-          <p>You have completed the entire experiment.</p>
-          <p>Your unique survey code is: <strong>${window.participantID}</strong></p>
-          <p>Please copy this code and enter it in the HIT survey for verification.</p>
+          <h2>Submit Your Data</h2>
+          <p>Please press the button below to submit your data.</p>
         </div>
       `,
       choices: ['Submit Data'],
       on_finish: function() {
-        // Collect trial data summary.
+        // A) Collect trial data summary.
         var jsPsychDataArray = jsPsych.data.get().values();
         var trialSummary = jsPsychDataArray.map(function(trial) {
           return {
@@ -860,7 +857,7 @@
             chosenShift: trial.chosen_shift !== undefined ? trial.chosen_shift : null
           };
         });
-        // Use the unique survey code (participantID) from mTurk as the database ID.
+        // B) Build the final payload using the mTurk unique survey code as participantID.
         var finalPayload = {
           participantID: window.participantID,
           selectedObject: window.selectedObject || null,
@@ -868,7 +865,7 @@
           yesClicks: yesClickEvents,
           trialSummary: trialSummary
         };
-        // Post the payload to your AWS endpoint.
+        // C) Post the payload to your AWS endpoint.
         var AWS_ENDPOINT = "https://i7nc0ict3h.execute-api.ap-southeast-1.amazonaws.com/storedata";
         fetch(AWS_ENDPOINT, {
           method: "POST",
@@ -885,6 +882,19 @@
       }
     };
 
+    /*************** 8) Final Survey Code Page ***************/
+    var finalCodeTrial = {
+      type: jsPsychHtmlButtonResponse,
+      stimulus: `
+        <div style="text-align:center;">
+          <h2>Thank you for participating!</h2>
+          <p>Your unique survey code is: <strong>${window.participantID}</strong></p>
+          <p>Please copy this code and enter it in the HIT survey for verification.</p>
+        </div>
+      `,
+      choices: ['Finish']
+    };
+
     /*************** Build the Master Timeline ***************/
     var timeline = [];
     timeline.push(welcomePage);
@@ -899,6 +909,7 @@
     timeline.push(experimentInstructions);
     timeline.push(multiKeyExperimentTrial);
     timeline.push(finalSubmissionTrial);
+    timeline.push(finalCodeTrial);
     jsPsych.run(timeline);
   </script>
 </body>
