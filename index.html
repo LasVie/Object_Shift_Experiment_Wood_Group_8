@@ -41,10 +41,8 @@
       padding: 10px 20px;
       cursor: pointer;
     }
-    .jspsych-btn:hover {
-      background-color: #45a049;
-    }
-    /* Fixed position container for YES button */
+    .jspsych-btn:hover { background-color: #45a049; }
+    /* Fixed container for YES button */
     #yes-button-container {
       position: fixed;
       bottom: 0;
@@ -58,7 +56,7 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background-color: rgba(128, 128, 128, 0.7);
+      background-color: rgba(128,128,128,0.7);
       z-index: 10000;
       display: flex;
       align-items: center;
@@ -68,7 +66,7 @@
       background-color: white;
       padding: 20px;
       border-radius: 8px;
-      box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 0 10px rgba(0,0,0,0.5);
       text-align: center;
       max-width: 90%;
     }
@@ -80,10 +78,8 @@
       border-radius: 4px;
       cursor: pointer;
     }
-    #fullscreen-overlay button:hover {
-      opacity: 0.9;
-    }
-    /* Improved Loading Screen Styles */
+    #fullscreen-overlay button:hover { opacity: 0.9; }
+    /* Loading screen styles */
     .loading-container {
       display: flex;
       flex-direction: column;
@@ -111,37 +107,33 @@
     }
   </style>
 </head>
-
 <body>
-  <!-- Container for moving the YES button dynamically -->
+  <!-- Container for YES button -->
   <div id="yes-button-container"></div>
 
   <script>
     /*********************************************************
      * GLOBAL VARIABLES & HELPER FUNCTIONS
      *********************************************************/
-    // Global array to store YES click events
+    // Global array to store YES click events.
     var yesClickEvents = [];
-    // Global flag to pause the experiment if fullscreen is lost
+    // Clear YES events at the start of actual experiment.
+    function clearYesClickEvents() { yesClickEvents = []; }
+    // Global flag for pausing.
     var demoPaused = false;
-
     function pauseAwareTimeout(callback, delay) {
       setTimeout(function waitForResume() {
         if (demoPaused) {
           setTimeout(waitForResume, 100);
-        } else {
-          callback();
-        }
+        } else { callback(); }
       }, delay);
     }
-
-    // Simple parser for filenames; if needed later
+    // (Optional) parse shift info from filename.
     function parseShiftFromFilename(url) {
       var match = url.match(/_(L|R|U|D)(\d+)px/);
       if (!match) return { direction: null, shift: 0 };
       return { direction: match[1], shift: parseInt(match[2], 10) };
     }
-
     /*********************************************************
      * Initialize jsPsych
      *********************************************************/
@@ -149,9 +141,8 @@
       override_safe_mode: true,
       experiment_width: 1000
     });
-
     /*********************************************************
-     * Fullscreen Listener + Overlay
+     * Fullscreen Listener & Overlay
      *********************************************************/
     document.addEventListener("fullscreenchange", function () {
       if (!document.fullscreenElement) {
@@ -211,7 +202,6 @@
       "Book Shelves", "Chess", "Wheel", "Food Platter", "Fruits",
       "Humming Bird", "Plant", "Swing", "Vase", "Wood"
     ];
-
     var groups = {
       "Group1": ["Center_100%_Plain", "Center_100%_LowContrast"],
       "Group2": ["Left_100%_Plain", "Right_100%_Plain"],
@@ -219,13 +209,12 @@
       "Group4": ["Center_125%_Plain", "Center_75%_Plain"],
       "Group5": ["Center_100%_PatternHoriz", "Center_100%_PatternVert", "Center_100%_Messy"]
     };
-
     function getRandomElement(arr) {
       return arr[Math.floor(Math.random() * arr.length)];
     }
   </script>
 
-  <!-- Function to fetch image filenames from remote JSON -->
+  <!-- Function to fetch image filenames -->
   <script>
     function fetchImageFilenames(searchKey) {
       return fetch("https://lasvientuexperimentdata.s3.ap-southeast-1.amazonaws.com/Rendered+Images/filenames.json")
@@ -354,9 +343,8 @@
         var demoImages = [];
         var imageFilenames = [];
         var loadingStartTime = Date.now();
-        var trialFinished = false;  // Guard to prevent actions after trial ends
+        var trialFinished = false;  // Guard against actions after trial ends
 
-        // Build filenames for demo images
         imageFilenames.push("00001_Cube_Center_100_Plain_N0px.png");
         for (var j = 2; j <= numImages; j++) {
           var shift = j - 1;
@@ -470,7 +458,6 @@
           btn.disabled = true;
           btn.style.opacity = "0.5";
           shiftImg.style.visibility = "hidden";
-
           pauseAwareTimeout(function () {
             if (trialFinished) return;
             if (currentIndex < demoImages.length - 1) {
@@ -531,7 +518,7 @@
       `,
       choices: ['Redo DEMO', 'START ACTUAL EXPERIMENT'],
       on_finish: function (data) {
-        // The demo timeline’s loop_function will check data.response.
+        // Loop back if the user chooses to redo demo (response===0).
       }
     };
 
@@ -542,7 +529,7 @@
         window.selectedObject = getRandomElement(objectNames);
         window.selectedGroupKey = getRandomElement(Object.keys(groups));
         var props = groups[window.selectedGroupKey];
-        var setsCount = props.length;
+        var setsCount = props.length; // Can be 2 or 3.
         return `
           <div style="text-align: center;">
             <h2>Actual Experiment:</h2>
@@ -570,6 +557,9 @@
       choices: ['YES'],
       response_ends_trial: false,
       on_load: function () {
+        // Clear any demo yes clicks so that we record only actual trial clicks.
+        clearYesClickEvents();
+
         var btn = document.querySelector(".jspsych-btn");
         if (!btn) {
           btn = document.createElement("button");
@@ -582,12 +572,8 @@
         btn.style.display = "none";
 
         var container = document.getElementById("actual-exp-container");
-        var properties = groups[window.selectedGroupKey];
+        var properties = groups[window.selectedGroupKey]; // This could be 2 or 3 sets.
         var experimentResults = [];
-        var propertyIndex = 0;
-
-        runExperimentForProperty(propertyIndex);
-
         function runExperimentForProperty(index) {
           if (index >= properties.length) {
             if (btn.parentNode) {
@@ -612,6 +598,7 @@
             runExperimentForProperty(index + 1);
           });
         }
+        runExperimentForProperty(0);
 
         function runDirectionalExperiment(searchKey, propertyName, callback) {
           container.innerHTML = `
@@ -623,7 +610,6 @@
             </div>
           `;
           yesBtnContainer.style.display = "none";
-
           var loadingBar = document.getElementById("exp-loading-bar");
           var progress = 0;
           var loadingInterval = setInterval(function () {
@@ -634,7 +620,6 @@
               loadingBar.style.width = progress + "%";
             }
           }, 100);
-
           fetchImageFilenames(searchKey).then(function(fileNames) {
             if (fileNames.length === 0) {
               container.innerHTML = "<p>No matching images found for key: " + searchKey + ".</p>";
@@ -646,25 +631,21 @@
               callback({}, fileNames);
               return;
             }
-
             fileNames = fileNames.slice(0, 401);
             var originalFilename = fileNames[0];
             var leftFilenamesAll = fileNames.slice(1, 101);
             var rightFilenamesAll = fileNames.slice(101, 201);
             var upFilenamesAll = fileNames.slice(201, 301);
             var downFilenamesAll = fileNames.slice(301, 401);
-
             var leftFilenames = leftFilenamesAll.filter((_, i) => i % 2 === 1);
             var rightFilenames = rightFilenamesAll.filter((_, i) => i % 2 === 1);
             var upFilenames = upFilenamesAll.filter((_, i) => i % 2 === 1);
             var downFilenames = downFilenamesAll.filter((_, i) => i % 2 === 1);
-
             var allFilenames = [originalFilename]
               .concat(leftFilenames)
               .concat(rightFilenames)
               .concat(upFilenames)
               .concat(downFilenames);
-
             var baseImageURL = "https://lasvientuexperimentdata.s3.ap-southeast-1.amazonaws.com/Rendered+Images/";
             function loadImage(src) {
               return new Promise(function(resolve, reject) {
@@ -674,7 +655,6 @@
                 img.src = baseImageURL + encodeURIComponent(src);
               });
             }
-
             Promise.all(allFilenames.map(loadImage)).then(function(loadedImages) {
               var imageMap = {};
               for (var i = 0; i < allFilenames.length; i++) {
@@ -685,19 +665,16 @@
               var rightImages = rightFilenames.map(fn => imageMap[fn]);
               var upImages = upFilenames.map(fn => imageMap[fn]);
               var downImages = downFilenames.map(fn => imageMap[fn]);
-
               var phases = [
                 { direction: "L", label: "LEFT", images: leftImages },
                 { direction: "R", label: "RIGHT", images: rightImages },
                 { direction: "U", label: "UP", images: upImages },
                 { direction: "D", label: "DOWN", images: downImages }
               ];
-
               var currentPhaseIndex = 0;
               var currentImageIndex = 0;
               var phaseResults = {};
               var phaseActive = false;
-
               var yesHandler = function () {
                 if (!phaseActive) return;
                 var phase = phases[currentPhaseIndex];
@@ -723,7 +700,6 @@
                 moveToNextPhase();
               };
               btn.addEventListener("click", yesHandler);
-
               function startPhaseCountdown() {
                 phaseActive = false;
                 yesBtnContainer.style.display = "none";
@@ -751,7 +727,6 @@
                 }
                 setTimeout(expCountdownTick, 1000);
               }
-
               function startPhase() {
                 phaseActive = true;
                 currentImageIndex = 0;
@@ -761,7 +736,6 @@
                 btn.style.opacity = "1";
                 showPhaseImages();
               }
-
               function showPhaseImages() {
                 if (!phaseActive) return;
                 var phase = phases[currentPhaseIndex];
@@ -782,7 +756,6 @@
                 `;
                 pauseAwareTimeout(advancePhaseImage, 3000);
               }
-
               function advancePhaseImage() {
                 if (!phaseActive) return;
                 var shiftImg = document.getElementById("exp-shift-image");
@@ -790,7 +763,6 @@
                 btn.disabled = true;
                 btn.style.opacity = "0.5";
                 shiftImg.style.visibility = "hidden";
-
                 pauseAwareTimeout(function () {
                   if (!phaseActive) return;
                   var phase = phases[currentPhaseIndex];
@@ -808,7 +780,6 @@
                   }
                 }, 1000);
               }
-
               function moveToNextPhase() {
                 phaseActive = false;
                 currentPhaseIndex++;
@@ -825,9 +796,7 @@
                   });
                 }
               }
-
               startPhaseCountdown();
-
             }).catch(function (err) {
               container.innerHTML = "<p>Error loading images: " + err + "</p>";
             });
@@ -850,7 +819,7 @@
       `,
       choices: ['Submit Data'],
       on_finish: function() {
-        // A) Get trial data summary.
+        // A) Collect trial data summary.
         var jsPsychDataArray = jsPsych.data.get().values();
         var trialSummary = jsPsychDataArray.map(function(trial) {
           return {
@@ -861,49 +830,43 @@
             chosenShift: trial.chosen_shift !== undefined ? trial.chosen_shift : null
           };
         });
-
         // B) Build the final payload as a plain object.
-        // This payload is constructed so that it has plain keys without DynamoDB
-        // attribute wrappers.
         var finalPayload = {
-          participantID: "user123", // You might extract this from your experiment as needed.
-          experimentID: "exp_456",
+          participantID: "user123",
+          // Removed experimentID per request.
           selectedObject: window.selectedObject || null,
           group: window.selectedGroupKey || null,
-          yesClicks: yesClickEvents, // Array of objects, each with phase, group, property, direction, shift, filename.
+          // yesClicks now contains the flattened yes-click events gathered in both the demo and multi-key experiments.
+          yesClicks: yesClickEvents,
           trialSummary: trialSummary
         };
-
-        // C) Post the final payload to your AWS endpoint.
+        // C) Post the payload to the AWS endpoint.
         var AWS_ENDPOINT = "https://i7nc0ict3h.execute-api.ap-southeast-1.amazonaws.com/storedata";
-
         fetch(AWS_ENDPOINT, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(finalPayload)
         })
         .then(response => response.json())
         .then(result => {
           console.log("Data posted successfully:", result);
-          // Optionally, redirect or display a success message.
+          // Optionally display a success message or redirect.
         })
         .catch(error => {
           console.error("Error posting data:", error);
-          // Optionally, display an error message.
         });
       }
     };
 
-    /*************** Build the Master Timeline and Run jsPsych ***************/
+    /*************** Build the Master Timeline ***************/
     var timeline = [];
     timeline.push(welcomePage);
+
     var demoTimeline = {
       timeline: [demoPage, dynamicDemoTrial, demoCompleteTrial],
       loop_function: function (data) {
         var last_trial = data.values()[data.values().length - 1];
-        return last_trial.response === 0; // Redo DEMO if response === 0
+        return last_trial.response === 0; // Redo the demo if response equals 0.
       }
     };
     timeline.push(demoTimeline);
