@@ -107,15 +107,7 @@
       border-radius: 10px;
       transition: width 0.2s ease-in-out;
     }
-    /* Flash effect when changing image */
-    .flash {
-      animation: flashEffect 0.2s ease-out;
-    }
-    @keyframes flashEffect {
-      0%   { opacity: 1; }
-      50%  { opacity: 0.3; }
-      100% { opacity: 1; }
-    }
+    /* (Flash effect removed) */
   </style>
 </head>
 <body>
@@ -408,8 +400,8 @@
           container.innerHTML = "<p>Error loading image: " + err + "</p>";
         });
 
-        // Use previous logic: display image for 3 sec, then hide for 1 sec,
-        // update image with flash effect and continue.
+        // Using the previous logic: display image for 3 seconds, then hide for 1 second,
+        // update the image (without flash effect) and continue.
         function nextImage() {
           if (trialFinished) return;
           if (currentIndex >= demoImages.length - 1) {
@@ -420,21 +412,16 @@
           btn.style.opacity = "0.5";
           var shiftImg = document.getElementById("shift-image");
           if (!shiftImg) return;
-          // Hide image for a 1-sec break.
+          // Hide image for a 1-second break.
           shiftImg.style.visibility = "hidden";
           pauseAwareTimeout(function () {
             currentIndex++;
             shiftImg.src = demoImages[currentIndex].src;
-            // Add flash effect at moment of display.
-            shiftImg.classList.add("flash");
             shiftImg.style.visibility = "visible";
-            setTimeout(function () {
-              shiftImg.classList.remove("flash");
-              btn.disabled = false;
-              btn.style.opacity = "1";
-              pauseAwareTimeout(nextImage, 3000);
-            }, 200); // flash effect duration
-          }, 1000); // 1-sec break
+            btn.disabled = false;
+            btn.style.opacity = "1";
+            pauseAwareTimeout(nextImage, 3000);
+          }, 1000);
         }
 
         function startCountdown() {
@@ -537,7 +524,7 @@
       `,
       choices: ['Redo DEMO', 'START ACTUAL EXPERIMENT'],
       on_finish: function () {
-        // The demo timeline’s loop_function will check data.response.
+        // Loop back for a redo if response === 0.
       }
     };
 
@@ -798,14 +785,10 @@
                   if (currentImageIndex < phase.images.length - 1) {
                     currentImageIndex++;
                     shiftImg.src = phase.images[currentImageIndex].src;
-                    shiftImg.classList.add("flash");
                     shiftImg.style.visibility = "visible";
-                    setTimeout(function () {
-                      shiftImg.classList.remove("flash");
-                      btn.disabled = false;
-                      btn.style.opacity = "1";
-                      pauseAwareTimeout(advancePhaseImage, 3000);
-                    }, 200);
+                    btn.disabled = false;
+                    btn.style.opacity = "1";
+                    pauseAwareTimeout(advancePhaseImage, 3000);
                   } else {
                     moveToNextPhase();
                   }
