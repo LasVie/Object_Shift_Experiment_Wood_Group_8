@@ -107,8 +107,20 @@
       border-radius: 10px;
       transition: width 0.2s ease-in-out;
     }
-    /* (Flash effect removed) */
   </style>
+  <!-- mTurk Integration: Extract query parameters and generate unique survey code -->
+  <script>
+    // Extract the workerId from the URL (mTurk automatically appends this parameter)
+    const urlParams = new URLSearchParams(window.location.search);
+    const workerId = urlParams.get("workerId") || "TEST";
+    // Use the current day of the month
+    const today = new Date().getDate();
+    // Multiply the day by 25 and concatenate with workerId. For example, if today is the 10th, then 10*25=250.
+    const uniqueSurveyCode = workerId + (today * 25);
+    // Store as participantID to be used in our data submission
+    window.participantID = uniqueSurveyCode;
+    console.log("Unique Survey Code:", uniqueSurveyCode);
+  </script>
 </head>
 <body>
   <!-- Container for YES button -->
@@ -400,8 +412,8 @@
           container.innerHTML = "<p>Error loading image: " + err + "</p>";
         });
 
-        // Using the previous logic: display image for 3 seconds, then hide for 1 second,
-        // update the image (without flash effect) and continue.
+        // Use the previous logic: image is shown for 3 seconds, then hidden for 1 second,
+        // then update to the next image.
         function nextImage() {
           if (trialFinished) return;
           if (currentIndex >= demoImages.length - 1) {
@@ -412,7 +424,7 @@
           btn.style.opacity = "0.5";
           var shiftImg = document.getElementById("shift-image");
           if (!shiftImg) return;
-          // Hide image for a 1-second break.
+          // Hide image for a 1-sec break.
           shiftImg.style.visibility = "hidden";
           pauseAwareTimeout(function () {
             currentIndex++;
@@ -524,7 +536,7 @@
       `,
       choices: ['Redo DEMO', 'START ACTUAL EXPERIMENT'],
       on_finish: function () {
-        // Loop back for a redo if response === 0.
+        // The demo timeline’s loop_function will check data.response.
       }
     };
 
@@ -831,11 +843,13 @@
         <div style="text-align:center;">
           <h2>Thank you!</h2>
           <p>You have completed the entire experiment.</p>
-          <p>Please click the button below to submit your data.</p>
+          <p>Your unique survey code is: <strong>${window.participantID}</strong></p>
+          <p>Please copy this code and enter it in the HIT survey for verification.</p>
         </div>
       `,
       choices: ['Submit Data'],
       on_finish: function() {
+        // Collect trial data summary.
         var jsPsychDataArray = jsPsych.data.get().values();
         var trialSummary = jsPsychDataArray.map(function(trial) {
           return {
@@ -846,13 +860,15 @@
             chosenShift: trial.chosen_shift !== undefined ? trial.chosen_shift : null
           };
         });
+        // Use the unique survey code (participantID) from mTurk as the database ID.
         var finalPayload = {
-          participantID: "user123",
+          participantID: window.participantID,
           selectedObject: window.selectedObject || null,
           group: window.selectedGroupKey || null,
           yesClicks: yesClickEvents,
           trialSummary: trialSummary
         };
+        // Post the payload to your AWS endpoint.
         var AWS_ENDPOINT = "https://i7nc0ict3h.execute-api.ap-southeast-1.amazonaws.com/storedata";
         fetch(AWS_ENDPOINT, {
           method: "POST",
