@@ -107,6 +107,15 @@
       border-radius: 10px;
       transition: width 0.2s ease-in-out;
     }
+    /* Flash effect when changing image */
+    .flash {
+      animation: flashEffect 0.2s ease-out;
+    }
+    @keyframes flashEffect {
+      0%   { opacity: 1; }
+      50%  { opacity: 0.3; }
+      100% { opacity: 1; }
+    }
   </style>
 </head>
 <body>
@@ -399,15 +408,21 @@
           container.innerHTML = "<p>Error loading image: " + err + "</p>";
         });
 
-        // Updated helper function to update the shifted image using addEventListener.
+        // Helper function to update the demo shifted image with flash effect.
         function updateShiftImage(newSrc, callback) {
           var shiftImg = document.getElementById("shift-image");
           if (!shiftImg) return;
+          // Add flash effect
+          shiftImg.classList.add("flash");
           shiftImg.style.visibility = "hidden";
           var handler = function() {
             shiftImg.style.visibility = "visible";
             shiftImg.removeEventListener("load", handler);
-            callback();
+            // Remove flash effect slightly after load so that the flash is visible.
+            setTimeout(function() {
+              shiftImg.classList.remove("flash");
+              callback();
+            }, 100);
           };
           shiftImg.addEventListener("load", handler);
           shiftImg.src = newSrc;
@@ -715,15 +730,19 @@
               };
               btn.addEventListener("click", yesHandler);
               
-              // Updated helper function for the actual experiment phase.
+              // Helper function to update the experiment's shifted image with flash effect.
               function updatePhaseImage(newSrc, callback) {
                 var shiftImg = document.getElementById("exp-shift-image");
                 if (!shiftImg) return;
+                shiftImg.classList.add("flash");
                 shiftImg.style.visibility = "hidden";
                 var handler = function() {
                   shiftImg.style.visibility = "visible";
                   shiftImg.removeEventListener("load", handler);
-                  callback();
+                  setTimeout(function() {
+                    shiftImg.classList.remove("flash");
+                    callback();
+                  }, 100);
                 };
                 shiftImg.addEventListener("load", handler);
                 shiftImg.src = newSrc;
