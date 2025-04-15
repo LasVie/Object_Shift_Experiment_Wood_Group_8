@@ -7,8 +7,10 @@
   <script src="jspsych/dist/plugin-html-button-response.js"></script>
   <!-- Include the default jsPsych CSS for basic styling -->
   <link href="jspsych/dist/jspsych.css" rel="stylesheet" type="text/css" />
+
   <style>
     p { text-align: justify; }
+
     /* University logo */
     .university-logo {
       position: absolute;
@@ -16,6 +18,7 @@
       left: 10px;
       height: 60px;
     }
+
     /* Welcome text container */
     .welcome-container {
       margin-top: 20px;
@@ -23,6 +26,7 @@
       margin-right: 20px;
       text-align: left;
     }
+
     /* Demo/Experiment image styling */
     .demo-image {
       max-width: 45vw;
@@ -30,6 +34,7 @@
       width: auto;
       height: auto;
     }
+
     /* jsPsych button styling */
     .jspsych-btn {
       font-weight: bold;
@@ -44,6 +49,7 @@
     .jspsych-btn:hover {
       background-color: #45a049;
     }
+
     /* Fixed container for YES button */
     #yes-button-container {
       position: fixed;
@@ -51,6 +57,7 @@
       right: 40px;
       z-index: 1000;
     }
+
     /* Fullscreen overlay */
     #fullscreen-overlay {
       position: fixed;
@@ -81,6 +88,7 @@
       cursor: pointer;
     }
     #fullscreen-overlay button:hover { opacity: 0.9; }
+
     /* Loading screen styles */
     .loading-container {
       display: flex;
@@ -90,7 +98,10 @@
       font-family: Arial, sans-serif;
       margin-top: 50px;
     }
-    .loading-container p { font-size: 24px; margin-bottom: 10px; }
+    .loading-container p {
+      font-size: 24px;
+      margin-bottom: 10px;
+    }
     .progress-bar-container {
       width: 300px;
       height: 20px;
@@ -107,6 +118,7 @@
       border-radius: 10px;
       transition: width 0.2s ease-in-out;
     }
+
     /* Circular progress indicator at bottom left (smaller circle) */
     #progress-circle {
       position: fixed;
@@ -119,7 +131,19 @@
       z-index: 1000;
       display: none;
     }
+
+    /************************************************************************
+     * NEW: Center the video stimulus and the plugin's button in one column
+     ************************************************************************/
+    .jspsych-html-button-response-stimulus,
+    #jspsych-html-button-response-btngroup {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
   </style>
+
   <!-- mTurk Integration: Generate Unique Survey Code -->
   <script>
     // mTurk automatically appends "workerId" to your URL.
@@ -145,6 +169,7 @@
   <div id="yes-button-container"></div>
   <!-- Circular progress indicator -->
   <div id="progress-circle"></div>
+
   <script>
     /*********************************************************
      * GLOBAL VARIABLES & HELPER FUNCTIONS
@@ -163,10 +188,12 @@
       if (!match) return { direction: null, shift: 0 };
       return { direction: match[1], shift: parseInt(match[2], 10) };
     }
+
     var jsPsych = initJsPsych({
       override_safe_mode: true,
       experiment_width: 1000
     });
+
     document.addEventListener("fullscreenchange", function () {
       if (!document.fullscreenElement) {
         demoPaused = true;
@@ -181,6 +208,7 @@
           <strong>Quit</strong> to return to the main screen (all progress lost!).
         `;
         promptBox.appendChild(message);
+
         var btnQuit = document.createElement("button");
         btnQuit.textContent = "Quit";
         btnQuit.style.backgroundColor = "#d9534f";
@@ -191,6 +219,7 @@
           }
           window.location.reload();
         };
+
         var btnResume = document.createElement("button");
         btnResume.textContent = "Resume";
         btnResume.style.backgroundColor = "#5cb85c";
@@ -204,18 +233,23 @@
             if (typeof jsPsych.resumeExperiment === "function") {
               jsPsych.resumeExperiment();
             }
-          }).catch(function (err) { console.error("Error re-entering full screen:", err); });
+          }).catch(function (err) {
+            console.error("Error re-entering full screen:", err);
+          });
         };
+
         promptBox.appendChild(btnQuit);
         promptBox.appendChild(btnResume);
         overlay.appendChild(promptBox);
         document.body.appendChild(overlay);
+
         if (typeof jsPsych.pauseExperiment === "function") {
           jsPsych.pauseExperiment();
         }
       }
     });
   </script>
+
   <script>
     var objectNames = [
       "Book Shelves", "Chess", "Wheel", "Food Platter", "Fruits",
@@ -228,10 +262,12 @@
       "Group4": ["Center_125%_Plain", "Center_75%_Plain"],
       "Group5": ["Center_100%_PatternHoriz", "Center_100%_PatternVert", "Center_100%_Messy"]
     };
+
     function getRandomElement(arr) {
       return arr[Math.floor(Math.random() * arr.length)];
     }
   </script>
+
   <script>
     function fetchImageFilenames(searchKey) {
       return fetch("https://lasvientuexperimentdata.s3.ap-southeast-1.amazonaws.com/Rendered+Images/filenames.json")
@@ -246,6 +282,7 @@
         });
     }
   </script>
+
   <script>
     /*************** 1) Welcome Page ***************/
     var welcomePage = {
@@ -340,34 +377,31 @@
     };
 
     /***************
-     * 2.5) NEW DEMO VIDEO PAGE
-     *  - This portion is changed to:
-     *    1) make the video smaller (640px wide),
-     *    2) disallow scrolling,
-     *    3) disable the 'Continue' button until the video finishes playing.
+     * 2.5) Demo Video Page
+     *   - Centers video and heading
+     *   - Disables "Continue" until video finishes
+     *   - Ensures button is directly under the stimulus in the same column
      ***************/
     var demoVideoTrial = {
       type: jsPsychHtmlButtonResponse,
       stimulus: `
-        <div style="width:100vw; height:100vh; display:flex; flex-direction:column; justify-content:center; align-items:center; margin:0; padding:0; overflow:hidden;">
-          <h2 style="margin-bottom:20px;">Instructional Video</h2>
-          <video id="demo-video" style="width:640px; height:auto;" controls>
-            <source src="data/Demo Video.mp4" type="video/mp4">
-            Your browser does not support the video tag.
-          </video>
-          <p style="margin-top:20px; max-width:600px; text-align:center;">
-            Please watch this video carefully. The "Continue" button will become available only after the video ends.
-          </p>
-        </div>
+        <h2 style="margin-bottom:20px;">Instructional Video</h2>
+        <video id="demo-video" style="width:640px; height:auto;" controls>
+          <source src="data/Demo Video.mp4" type="video/mp4">
+          Your browser does not support the video tag.
+        </video>
+        <p style="margin-top:20px; max-width:600px; text-align:center;">
+          Please watch this video carefully. The "Continue" button will become available only after the video ends.
+        </p>
       `,
       choices: ['Continue'],
       on_load: function() {
         const btn = document.querySelector('.jspsych-btn');
         btn.disabled = true; // initially disabled
-        // re-enable once the video has fully played
+
         const videoElement = document.getElementById('demo-video');
         videoElement.addEventListener('ended', function() {
-          btn.disabled = false;
+          btn.disabled = false; // enable after video finishes
         });
       }
     };
@@ -392,6 +426,7 @@
         var imageFilenames = [];
         var loadingStartTime = Date.now();
         var trialFinished = false;
+
         imageFilenames.push("00001_Cube_Center_100_Plain_N0px.png");
         for (var j = 2; j <= numImages; j++) {
           var shift = j - 1;
@@ -399,6 +434,7 @@
           var filename = padded + "_Cube_Center_100_Plain_L" + shift + "px.png";
           imageFilenames.push(filename);
         }
+
         var loadingScreenTimeout = setTimeout(function () {
           container.innerHTML = `
             <div class="loading-container">
@@ -412,10 +448,14 @@
           var progress = 0;
           var interval = setInterval(function () {
             progress += 5;
-            if (progress >= 100) { clearInterval(interval); }
-            else { loadingBar.style.width = progress + "%"; }
+            if (progress >= 100) {
+              clearInterval(interval);
+            } else {
+              loadingBar.style.width = progress + "%";
+            }
           }, 100);
         }, 100);
+
         function loadImage(src) {
           return new Promise(function (resolve, reject) {
             var img = new Image();
@@ -424,6 +464,7 @@
             img.src = "image/" + encodeURIComponent(src);
           });
         }
+
         Promise.all(imageFilenames.map(loadImage)).then(function (images) {
           demoImages = images;
           var loadingDuration = Date.now() - loadingStartTime;
@@ -436,6 +477,8 @@
         }).catch(function (err) {
           container.innerHTML = "<p>Error loading image: " + err + "</p>";
         });
+
+        var currentIndex = 0;
         function nextImage() {
           if (trialFinished) return;
           if (currentIndex >= demoImages.length - 1) {
@@ -447,6 +490,7 @@
           var shiftImg = document.getElementById("shift-image");
           if (!shiftImg) return;
           shiftImg.style.visibility = "hidden";
+
           pauseAwareTimeout(function () {
             currentIndex++;
             shiftImg.src = demoImages[currentIndex].src;
@@ -456,6 +500,7 @@
             pauseAwareTimeout(nextImage, 3000);
           }, 1000);
         }
+
         function startCountdown() {
           btn.style.display = "none";
           container.innerHTML = `
@@ -476,12 +521,15 @@
             var cd = document.getElementById("countdown");
             if (!cd) return;
             cd.innerHTML = count;
-            if (count <= 0) { startDemo(); }
-            else { setTimeout(countdownTick, 1000); }
+            if (count <= 0) {
+              startDemo();
+            } else {
+              setTimeout(countdownTick, 1000);
+            }
           }
           setTimeout(countdownTick, 1000);
         }
-        var currentIndex = 0;
+
         function startDemo() {
           container.innerHTML = `
             <div id="demo-header" style="text-align:center; margin-top:10px;">
@@ -506,6 +554,7 @@
           btn.style.opacity = "1";
           pauseAwareTimeout(nextImage, 3000);
         }
+
         btn.addEventListener("click", function () {
           if (trialFinished) return;
           trialFinished = true;
@@ -521,9 +570,12 @@
           }
           finishTrial();
         });
+
         function finishTrial() {
           var btn = document.querySelector(".jspsych-btn");
-          if (btn && btn.parentNode) { btn.parentNode.removeChild(btn); }
+          if (btn && btn.parentNode) {
+            btn.parentNode.removeChild(btn);
+          }
           var trialData = { chosen_shift: currentIndex };
           jsPsych.finishTrial(trialData);
         }
@@ -660,6 +712,7 @@
             if (progress >= 100) { clearInterval(loadingInterval); }
             else { loadingBar.style.width = progress + "%"; }
           }, 100);
+
           fetchImageFilenames(searchKey).then(function(fileNames) {
             if (fileNames.length === 0) {
               container.innerHTML = "<p>No matching images found for key: " + searchKey + ".</p>";
@@ -672,20 +725,24 @@
               return;
             }
             fileNames = fileNames.slice(0, 401);
+
             var originalFilename = fileNames[0];
             var leftFilenamesAll = fileNames.slice(1, 101);
             var rightFilenamesAll = fileNames.slice(101, 201);
             var upFilenamesAll = fileNames.slice(201, 301);
             var downFilenamesAll = fileNames.slice(301, 401);
+
             var leftFilenames = leftFilenamesAll.filter((_, i) => i % 2 === 1);
             var rightFilenames = rightFilenamesAll.filter((_, i) => i % 2 === 1);
             var upFilenames = upFilenamesAll.filter((_, i) => i % 2 === 1);
             var downFilenames = downFilenamesAll.filter((_, i) => i % 2 === 1);
+
             var allFilenames = [originalFilename]
               .concat(leftFilenames)
               .concat(rightFilenames)
               .concat(upFilenames)
               .concat(downFilenames);
+
             var baseImageURL = "https://lasvientuexperimentdata.s3.ap-southeast-1.amazonaws.com/Rendered+Images/";
             function loadImage(src) {
               return new Promise(function(resolve, reject) {
@@ -695,22 +752,26 @@
                 img.src = baseImageURL + encodeURIComponent(src);
               });
             }
+
             Promise.all(allFilenames.map(loadImage)).then(function(loadedImages) {
               var imageMap = {};
               for (var i = 0; i < allFilenames.length; i++) {
                 imageMap[allFilenames[i]] = loadedImages[i];
               }
+
               var originalImage = imageMap[originalFilename];
               var leftImages = leftFilenames.map(fn => imageMap[fn]);
               var rightImages = rightFilenames.map(fn => imageMap[fn]);
               var upImages = upFilenames.map(fn => imageMap[fn]);
               var downImages = downFilenames.map(fn => imageMap[fn]);
+
               var phases = [
                 { direction: "L", label: "LEFT", images: leftImages },
                 { direction: "R", label: "RIGHT", images: rightImages },
                 { direction: "U", label: "UP", images: upImages },
                 { direction: "D", label: "DOWN", images: downImages }
               ];
+
               var currentPhaseIndex = 0;
               var currentImageIndex = 0;
               var phaseResults = {};
@@ -923,7 +984,7 @@
     var demoTimeline = {
       timeline: [
         demoPage,
-        demoVideoTrial, // <-- Inserted here
+        demoVideoTrial, // inserted video page
         dynamicDemoTrial,
         demoCompleteTrial
       ],
