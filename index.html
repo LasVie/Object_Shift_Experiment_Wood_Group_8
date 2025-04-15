@@ -339,6 +339,29 @@
       }
     };
 
+    /*************** 2a) Demo Video Page ***************/
+    // This new trial presents a demo video using the HTML5 <video> element.
+    // HTML5 video is generally a good choice since it is lightweight and works well across browsers.
+    var demoVideoTrial = {
+  type: jsPsychHtmlButtonResponse,
+  stimulus: `
+    <div style="text-align:center;">
+      <h3>Demo Video</h3>
+      <!-- 
+        We set the video width and height to reflect 1920×1080, 
+        but add 'max-width: 80%; height: auto;' so it remains responsive.
+      -->
+      <video id="demo-video" width="1920" height="1080" style="max-width: 80%; height: auto;" controls>
+        <source src="data/Demo Video.mp4" type="video/mp4">
+        Your browser does not support the video tag.
+      </video>
+      <p>Click "Continue" once you have watched the video.</p>
+    </div>
+  `,
+  choices: ['Continue']
+};
+
+
     /*************** 3) Dynamic Demo Trial ***************/
     var dynamicDemoTrial = {
       type: jsPsychHtmlButtonResponse,
@@ -884,10 +907,10 @@
       choices: ['Finish']
     };
 
-    var timeline = [];
+    // --- Update the demo timeline to include the new demo video trial ---
     timeline.push(welcomePage);
     var demoTimeline = {
-      timeline: [demoPage, dynamicDemoTrial, demoCompleteTrial],
+      timeline: [demoPage, demoVideoTrial, dynamicDemoTrial, demoCompleteTrial],
       loop_function: function(data) {
         var last_trial = data.values()[data.values().length - 1];
         return last_trial.response === 0;
