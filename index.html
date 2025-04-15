@@ -176,6 +176,10 @@
     function clearYesClickEvents() { yesClickEvents = []; }
     var demoPaused = false;
 
+    // NEW GLOBAL VARIABLES FOR VIDEO WATCH TIME
+    var demoVideoStartTime = 0;   // store Date.now() when user arrives on the demo video
+    var demoVideoWatchTime = 0;   // number of seconds user actually watched
+
     function pauseAwareTimeout(callback, delay) {
       setTimeout(function waitForResume() {
         if (demoPaused) { setTimeout(waitForResume, 100); }
@@ -399,8 +403,14 @@
         const btn = document.querySelector('.jspsych-btn');
         btn.disabled = true; // initially disabled
 
+        // Record start time for the video
+        demoVideoStartTime = Date.now();
+
         const videoElement = document.getElementById('demo-video');
         videoElement.addEventListener('ended', function() {
+          // Calculate watch time in seconds
+          demoVideoWatchTime = (Date.now() - demoVideoStartTime) / 1000;
+          console.log("User watched demo video for", demoVideoWatchTime, "seconds");
           btn.disabled = false; // enable after video finishes
         });
       }
@@ -491,14 +501,14 @@
           if (!shiftImg) return;
           shiftImg.style.visibility = "hidden";
 
-          // ***** SHIFTED FROM 1000ms -> 500ms (the 'in-between' transition) *****
+          // In-between transition: 1000ms --> 500ms
           pauseAwareTimeout(function () {
             currentIndex++;
             shiftImg.src = demoImages[currentIndex].src;
             shiftImg.style.visibility = "visible";
             btn.disabled = false;
             btn.style.opacity = "1";
-            // ***** SHIFTED FROM 3000ms -> 2000ms (the blink/update frequency) *****
+            // Blink/update freq: 3000ms --> 2000ms
             pauseAwareTimeout(nextImage, 2000);
           }, 500);
         }
@@ -554,7 +564,7 @@
           btn.style.display = "inline-block";
           btn.disabled = false;
           btn.style.opacity = "1";
-          // ***** SHIFTED FROM 3000ms -> 2000ms for first update *****
+          // First update: 3000ms -> 2000ms
           pauseAwareTimeout(nextImage, 2000);
         }
 
@@ -658,7 +668,6 @@
         yesBtnContainer.style.display = "none";
         btn.style.display = "none";
 
-        // Show the progress circle
         document.getElementById("progress-circle").style.display = "block";
         var properties = groups[window.selectedGroupKey];
         var totalSets = properties.length * 4;
@@ -808,7 +817,6 @@
                       direction: parsed.direction
                     };
                   }
-                  // Increment the global completedSets counter and update progress circle
                   window.completedSets++;
                   window.updateProgressCircle();
                   moveToNextPhase();
@@ -874,7 +882,6 @@
                 `;
                 btn.disabled = false;
                 btn.style.opacity = "1";
-                // ***** SHIFTING from 3000ms -> 2000ms  *****
                 pauseAwareTimeout(advancePhaseImage, 2000);
               }
 
@@ -883,7 +890,6 @@
                 btn.style.opacity = "0.5";
                 var shiftImg = document.getElementById("exp-shift-image");
                 shiftImg.style.visibility = "hidden";
-                // ***** SHIFTING from 1000ms -> 500ms *****
                 pauseAwareTimeout(function () {
                   var phase = phases[currentPhaseIndex];
                   if (currentImageIndex < phase.images.length - 1) {
@@ -916,10 +922,8 @@
                   });
                 }
               }
-
-              // Start the countdown for the current phase.
+              // Start countdown for the current phase
               startPhaseCountdown();
-
             }).catch(function (err) {
               container.innerHTML = "<p>Error loading images: " + err + "</p>";
             });
@@ -952,13 +956,17 @@
             chosenShift: trial.chosen_shift !== undefined ? trial.chosen_shift : null
           };
         });
+
+        // Include the watched time (in seconds) for the demo video
         var finalPayload = {
           participantID: window.participantID,
           selectedObject: window.selectedObject || null,
           group: window.selectedGroupKey || null,
           yesClicks: yesClickEvents,
-          trialSummary: trialSummary
+          trialSummary: trialSummary,
+          demoVideoWatchTime: demoVideoWatchTime  // <--- NEW KEY
         };
+
         var AWS_ENDPOINT = "https://i7nc0ict3h.execute-api.ap-southeast-1.amazonaws.com/storedata";
         fetch(AWS_ENDPOINT, {
           method: "POST",
@@ -994,7 +1002,7 @@
     var timeline = [];
     timeline.push(welcomePage);
 
-    // Insert the new DEMO timeline (with the updated messages & video)
+    // DEMO Timeline with new video watch time tracking
     var demoTimeline = {
       timeline: [
         demoPage,
