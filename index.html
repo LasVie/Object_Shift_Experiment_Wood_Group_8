@@ -132,7 +132,7 @@
       display: none;
     }
 
-    /* Center the stimulus and button vertically & horizontally */
+    /* Center the stimulus and button in one column */
     .jspsych-html-button-response-stimulus,
     #jspsych-html-button-response-btngroup {
       display: flex;
@@ -300,11 +300,10 @@
             where a key object may be displaced in various directions. Your task is
             to detect these shifts.
           </p>
-          <p>
-            <strong>Important:</strong> This experiment must be done on a desktop or laptop in full screen mode.
-          </p>
           <p style="color:red; font-weight:bold;">
             Please do not refresh the page during the experiment; refreshing will cause all progress to be lost.
+            <br>
+            Only refresh if images fail to load.
           </p>
           <p>
             <input type="checkbox" id="device-confirm" name="device-confirm">
@@ -357,10 +356,11 @@
               If you do not notice a change, it will keep updating until the final image.
             </p>
             <p>
-              <strong>Note:</strong> Quitting the experiment at any point will erase all progress!
+              <strong>Note:</strong> Quitting the experiment at any point will erase all progress.
             </p>
             <p>
-              Please confirm you have read these instructions.
+              <strong>Please be aware:</strong> we will use your demo performance to verify your understanding of the experiment.
+              If the demo suggests lack of attention or understanding, it may affect your final compensation.
             </p>
           </div>
           <div style="margin-top:10px; font-size:14px;">
@@ -379,12 +379,7 @@
       }
     };
 
-    /***************
-     * 2.5) Demo Video Page
-     *   - Make video bigger (responsive up to ~1200px)
-     *   - Fully center the text prompt
-     *   - "Continue" disabled until video ends
-     ***************/
+    /*************** 2.5) Demo Video Page ***************/
     var demoVideoTrial = {
       type: jsPsychHtmlButtonResponse,
       stimulus: `
@@ -496,14 +491,16 @@
           if (!shiftImg) return;
           shiftImg.style.visibility = "hidden";
 
+          // ***** SHIFTED FROM 1000ms -> 500ms (the 'in-between' transition) *****
           pauseAwareTimeout(function () {
             currentIndex++;
             shiftImg.src = demoImages[currentIndex].src;
             shiftImg.style.visibility = "visible";
             btn.disabled = false;
             btn.style.opacity = "1";
-            pauseAwareTimeout(nextImage, 3000);
-          }, 1000);
+            // ***** SHIFTED FROM 3000ms -> 2000ms (the blink/update frequency) *****
+            pauseAwareTimeout(nextImage, 2000);
+          }, 500);
         }
 
         function startCountdown() {
@@ -557,7 +554,8 @@
           btn.style.display = "inline-block";
           btn.disabled = false;
           btn.style.opacity = "1";
-          pauseAwareTimeout(nextImage, 3000);
+          // ***** SHIFTED FROM 3000ms -> 2000ms for first update *****
+          pauseAwareTimeout(nextImage, 2000);
         }
 
         btn.addEventListener("click", function () {
@@ -630,6 +628,10 @@
               In each set, the same salient object will be used. The object will shift in 4 directions – Left, Right, Up, and Down.
               After each directional shift, please press <strong>YES</strong> once you observe a difference.
             </p>
+            <p>
+              Please take every part of the experiment seriously. Providing invalid or inattentive responses
+              may affect your final payment.
+            </p>
             <p>Once ready, please press START.</p>
           </div>
         `;
@@ -656,7 +658,7 @@
         yesBtnContainer.style.display = "none";
         btn.style.display = "none";
 
-        // --- MODIFIED PART FOR CONTINUOUS CIRCULAR PROGRESS ---
+        // Show the progress circle
         document.getElementById("progress-circle").style.display = "block";
         var properties = groups[window.selectedGroupKey];
         var totalSets = properties.length * 4;
@@ -667,7 +669,6 @@
             `conic-gradient(#4CAF50 0deg, #4CAF50 ${angle}deg, #ccc ${angle}deg, #ccc 360deg)`;
         };
         window.updateProgressCircle();
-        // --- END MODIFIED PART ---
 
         console.log("Selected object:", window.selectedObject);
         console.log("Selected group:", window.selectedGroupKey);
@@ -714,11 +715,8 @@
           var progress = 0;
           var loadingInterval = setInterval(function () {
             progress += 5;
-            if (progress >= 100) {
-              clearInterval(loadingInterval);
-            } else {
-              loadingBar.style.width = progress + "%";
-            }
+            if (progress >= 100) { clearInterval(loadingInterval); }
+            else { loadingBar.style.width = progress + "%"; }
           }, 100);
 
           fetchImageFilenames(searchKey).then(function(fileNames) {
@@ -810,7 +808,7 @@
                       direction: parsed.direction
                     };
                   }
-                  // Increment the global completedSets counter and update progress.
+                  // Increment the global completedSets counter and update progress circle
                   window.completedSets++;
                   window.updateProgressCircle();
                   moveToNextPhase();
@@ -876,7 +874,8 @@
                 `;
                 btn.disabled = false;
                 btn.style.opacity = "1";
-                pauseAwareTimeout(advancePhaseImage, 3000);
+                // ***** SHIFTING from 3000ms -> 2000ms  *****
+                pauseAwareTimeout(advancePhaseImage, 2000);
               }
 
               function advancePhaseImage() {
@@ -884,6 +883,7 @@
                 btn.style.opacity = "0.5";
                 var shiftImg = document.getElementById("exp-shift-image");
                 shiftImg.style.visibility = "hidden";
+                // ***** SHIFTING from 1000ms -> 500ms *****
                 pauseAwareTimeout(function () {
                   var phase = phases[currentPhaseIndex];
                   if (currentImageIndex < phase.images.length - 1) {
@@ -892,11 +892,11 @@
                     shiftImg.style.visibility = "visible";
                     btn.disabled = false;
                     btn.style.opacity = "1";
-                    pauseAwareTimeout(advancePhaseImage, 3000);
+                    pauseAwareTimeout(advancePhaseImage, 2000);
                   } else {
                     moveToNextPhase();
                   }
-                }, 1000);
+                }, 500);
               }
 
               function moveToNextPhase() {
@@ -916,8 +916,10 @@
                   });
                 }
               }
+
               // Start the countdown for the current phase.
               startPhaseCountdown();
+
             }).catch(function (err) {
               container.innerHTML = "<p>Error loading images: " + err + "</p>";
             });
@@ -992,11 +994,11 @@
     var timeline = [];
     timeline.push(welcomePage);
 
-    // The DEMO timeline
+    // Insert the new DEMO timeline (with the updated messages & video)
     var demoTimeline = {
       timeline: [
         demoPage,
-        demoVideoTrial, // <-- Inserted and modified here
+        demoVideoTrial,
         dynamicDemoTrial,
         demoCompleteTrial
       ],
