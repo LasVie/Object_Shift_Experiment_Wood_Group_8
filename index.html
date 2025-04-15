@@ -341,18 +341,22 @@
 
     /***************
      * 2.5) NEW DEMO VIDEO PAGE (INSERTED BETWEEN DEMO INSTRUCTIONS AND DYNAMIC DEMO)
+     *  - ONLY the portion below has been modified to:
+     *    1) center the video,
+     *    2) prevent scrolling,
+     *    3) rename the heading (instead of "Demo Video").
      ***************/
     var demoVideoTrial = {
       type: jsPsychHtmlButtonResponse,
       stimulus: `
-        <div style="text-align:center;">
-          <h3>Demo Video</h3>
-          <video width="1920" height="1080" controls>
+        <div style="width:100vw; height:100vh; display:flex; flex-direction:column; justify-content:center; align-items:center; margin:0; padding:0; overflow:hidden;">
+          <h2 style="margin-bottom:20px;">Instructional Video</h2>
+          <video style="max-width:80%; height:auto;" controls>
             <source src="data/Demo Video.mp4" type="video/mp4">
             Your browser does not support the video tag.
           </video>
           <p style="margin-top:20px;">
-            Please watch the demo video, then click "Continue" to proceed to the actual dynamic demo.
+            Please watch this video carefully, then click "Continue" to proceed to the demonstration.
           </p>
         </div>
       `,
