@@ -339,28 +339,25 @@
       }
     };
 
-    /*************** 2a) Demo Video Page ***************/
-    // This new trial presents a demo video using the HTML5 <video> element.
-    // HTML5 video is generally a good choice since it is lightweight and works well across browsers.
+    /***************
+     * 2.5) NEW DEMO VIDEO PAGE (INSERTED BETWEEN DEMO INSTRUCTIONS AND DYNAMIC DEMO)
+     ***************/
     var demoVideoTrial = {
-  type: jsPsychHtmlButtonResponse,
-  stimulus: `
-    <div style="text-align:center;">
-      <h3>Demo Video</h3>
-      <!-- 
-        We set the video width and height to reflect 1920×1080, 
-        but add 'max-width: 80%; height: auto;' so it remains responsive.
-      -->
-      <video id="demo-video" width="1920" height="1080" style="max-width: 80%; height: auto;" controls>
-        <source src="data/Demo Video.mp4" type="video/mp4">
-        Your browser does not support the video tag.
-      </video>
-      <p>Click "Continue" once you have watched the video.</p>
-    </div>
-  `,
-  choices: ['Continue']
-};
-
+      type: jsPsychHtmlButtonResponse,
+      stimulus: `
+        <div style="text-align:center;">
+          <h3>Demo Video</h3>
+          <video width="1920" height="1080" controls>
+            <source src="data/Demo Video.mp4" type="video/mp4">
+            Your browser does not support the video tag.
+          </video>
+          <p style="margin-top:20px;">
+            Please watch the demo video, then click "Continue" to proceed to the actual dynamic demo.
+          </p>
+        </div>
+      `,
+      choices: ['Continue']
+    };
 
     /*************** 3) Dynamic Demo Trial ***************/
     var dynamicDemoTrial = {
@@ -590,14 +587,10 @@
         btn.style.display = "none";
 
         // --- MODIFIED PART FOR CONTINUOUS CIRCULAR PROGRESS ---
-        // Ensure the circular progress indicator (already in the HTML) is visible.
         document.getElementById("progress-circle").style.display = "block";
         var properties = groups[window.selectedGroupKey];
-        // Compute total sets once for the entire multi-key trial.
         var totalSets = properties.length * 4;
-        // Declare global variable for completed sets (persisting across all properties).
         window.completedSets = 0;
-        // Define a function to update the progress circle.
         window.updateProgressCircle = function() {
           var angle = ((totalSets - window.completedSets) / totalSets) * 360;
           document.getElementById("progress-circle").style.background =
@@ -907,20 +900,33 @@
       choices: ['Finish']
     };
 
-    // --- Update the demo timeline to include the new demo video trial ---
+    /*********************************************************
+     * ASSEMBLE TIMELINE
+     *********************************************************/
+    var timeline = [];
     timeline.push(welcomePage);
+
+    // Original "demoPage", now updated to run the new video trial next
     var demoTimeline = {
-      timeline: [demoPage, demoVideoTrial, dynamicDemoTrial, demoCompleteTrial],
+      timeline: [
+        demoPage,
+        demoVideoTrial, // <-- Inserted here
+        dynamicDemoTrial,
+        demoCompleteTrial
+      ],
       loop_function: function(data) {
         var last_trial = data.values()[data.values().length - 1];
+        // If last trial button was 'Redo DEMO' (response == 0), repeat
         return last_trial.response === 0;
       }
     };
     timeline.push(demoTimeline);
+
     timeline.push(experimentInstructions);
     timeline.push(multiKeyExperimentTrial);
     timeline.push(finalSubmissionTrial);
     timeline.push(finalCodeTrial);
+
     jsPsych.run(timeline);
   </script>
 </body>
