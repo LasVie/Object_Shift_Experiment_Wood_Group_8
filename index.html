@@ -340,27 +340,36 @@
     };
 
     /***************
-     * 2.5) NEW DEMO VIDEO PAGE (INSERTED BETWEEN DEMO INSTRUCTIONS AND DYNAMIC DEMO)
-     *  - ONLY the portion below has been modified to:
-     *    1) center the video,
-     *    2) prevent scrolling,
-     *    3) rename the heading (instead of "Demo Video").
+     * 2.5) NEW DEMO VIDEO PAGE
+     *  - This portion is changed to:
+     *    1) make the video smaller (640px wide),
+     *    2) disallow scrolling,
+     *    3) disable the 'Continue' button until the video finishes playing.
      ***************/
     var demoVideoTrial = {
       type: jsPsychHtmlButtonResponse,
       stimulus: `
         <div style="width:100vw; height:100vh; display:flex; flex-direction:column; justify-content:center; align-items:center; margin:0; padding:0; overflow:hidden;">
           <h2 style="margin-bottom:20px;">Instructional Video</h2>
-          <video style="max-width:80%; height:auto;" controls>
+          <video id="demo-video" style="width:640px; height:auto;" controls>
             <source src="data/Demo Video.mp4" type="video/mp4">
             Your browser does not support the video tag.
           </video>
-          <p style="margin-top:20px;">
-            Please watch this video carefully, then click "Continue" to proceed to the demonstration.
+          <p style="margin-top:20px; max-width:600px; text-align:center;">
+            Please watch this video carefully. The "Continue" button will become available only after the video ends.
           </p>
         </div>
       `,
-      choices: ['Continue']
+      choices: ['Continue'],
+      on_load: function() {
+        const btn = document.querySelector('.jspsych-btn');
+        btn.disabled = true; // initially disabled
+        // re-enable once the video has fully played
+        const videoElement = document.getElementById('demo-video');
+        videoElement.addEventListener('ended', function() {
+          btn.disabled = false;
+        });
+      }
     };
 
     /*************** 3) Dynamic Demo Trial ***************/
