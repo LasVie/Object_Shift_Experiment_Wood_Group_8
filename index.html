@@ -178,11 +178,8 @@
 
     function pauseAwareTimeout(callback, delay) {
       setTimeout(function waitForResume() {
-        if (demoPaused) {
-          setTimeout(waitForResume, 100);
-        } else {
-          callback();
-        }
+        if (demoPaused) { setTimeout(waitForResume, 100); }
+        else { callback(); }
       }, delay);
     }
 
@@ -278,9 +275,7 @@
     function fetchImageFilenames(searchKey) {
       return fetch("https://lasvientuexperimentdata.s3.ap-southeast-1.amazonaws.com/Rendered+Images/filenames.json")
         .then(response => {
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-          }
+          if (!response.ok) { throw new Error(`HTTP error! status: ${response.status}`); }
           return response.json();
         })
         .then(data => {
@@ -386,20 +381,21 @@
 
     /***************
      * 2.5) Demo Video Page
-     *   - Heading moved up a bit (less top margin)
-     *   - Video width increased (800px)
-     *   - Text centered
+     *   - Make video bigger (responsive up to ~1200px)
+     *   - Fully center the text prompt
      *   - "Continue" disabled until video ends
      ***************/
     var demoVideoTrial = {
       type: jsPsychHtmlButtonResponse,
       stimulus: `
         <h2 style="text-align:center; margin-top:10px;">Instructional Video</h2>
-        <video id="demo-video" style="width:800px; height:auto; margin-top:10px;" controls>
-          <source src="data/Demo Video.mp4" type="video/mp4">
-          Your browser does not support the video tag.
-        </video>
-        <p style="margin-top:10px; text-align:center; max-width:600px;">
+        <div style="width:100%; max-width:1200px; margin:0 auto; text-align:center;">
+          <video id="demo-video" style="width:100%; height:auto; margin-top:10px;" controls>
+            <source src="data/Demo Video.mp4" type="video/mp4">
+            Your browser does not support the video tag.
+          </video>
+        </div>
+        <p style="margin-top:20px; text-align:center;">
           Please watch this video carefully. The "Continue" button will become available only after the video ends.
         </p>
       `,
@@ -680,9 +676,7 @@
 
         function runExperimentForProperty(index) {
           if (index >= properties.length) {
-            if (btn.parentNode) {
-              btn.parentNode.removeChild(btn);
-            }
+            if (btn.parentNode) { btn.parentNode.removeChild(btn); }
             var trialData = {
               object: window.selectedObject,
               group: window.selectedGroupKey,
@@ -998,10 +992,11 @@
     var timeline = [];
     timeline.push(welcomePage);
 
+    // The DEMO timeline
     var demoTimeline = {
       timeline: [
         demoPage,
-        demoVideoTrial, // inserted video page
+        demoVideoTrial, // <-- Inserted and modified here
         dynamicDemoTrial,
         demoCompleteTrial
       ],
