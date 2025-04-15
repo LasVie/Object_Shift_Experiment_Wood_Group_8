@@ -132,9 +132,7 @@
       display: none;
     }
 
-    /************************************************************************
-     * NEW: Center the video stimulus and the plugin's button in one column
-     ************************************************************************/
+    /* Center the stimulus and button vertically & horizontally */
     .jspsych-html-button-response-stimulus,
     #jspsych-html-button-response-btngroup {
       display: flex;
@@ -177,12 +175,17 @@
     var yesClickEvents = [];
     function clearYesClickEvents() { yesClickEvents = []; }
     var demoPaused = false;
+
     function pauseAwareTimeout(callback, delay) {
       setTimeout(function waitForResume() {
-        if (demoPaused) { setTimeout(waitForResume, 100); }
-        else { callback(); }
+        if (demoPaused) {
+          setTimeout(waitForResume, 100);
+        } else {
+          callback();
+        }
       }, delay);
     }
+
     function parseShiftFromFilename(url) {
       var match = url.match(/_(L|R|U|D)(\d+)px/);
       if (!match) return { direction: null, shift: 0 };
@@ -199,8 +202,10 @@
         demoPaused = true;
         var overlay = document.createElement("div");
         overlay.id = "fullscreen-overlay";
+
         var promptBox = document.createElement("div");
         promptBox.className = "prompt-box";
+
         var message = document.createElement("p");
         message.innerHTML = `
           You have exited full screen mode.<br><br>
@@ -240,6 +245,7 @@
 
         promptBox.appendChild(btnQuit);
         promptBox.appendChild(btnResume);
+
         overlay.appendChild(promptBox);
         document.body.appendChild(overlay);
 
@@ -272,7 +278,9 @@
     function fetchImageFilenames(searchKey) {
       return fetch("https://lasvientuexperimentdata.s3.ap-southeast-1.amazonaws.com/Rendered+Images/filenames.json")
         .then(response => {
-          if (!response.ok) { throw new Error(`HTTP error! status: ${response.status}`); }
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
           return response.json();
         })
         .then(data => {
@@ -378,19 +386,20 @@
 
     /***************
      * 2.5) Demo Video Page
-     *   - Centers video and heading
-     *   - Disables "Continue" until video finishes
-     *   - Ensures button is directly under the stimulus in the same column
+     *   - Heading moved up a bit (less top margin)
+     *   - Video width increased (800px)
+     *   - Text centered
+     *   - "Continue" disabled until video ends
      ***************/
     var demoVideoTrial = {
       type: jsPsychHtmlButtonResponse,
       stimulus: `
-        <h2 style="margin-bottom:20px;">Instructional Video</h2>
-        <video id="demo-video" style="width:640px; height:auto;" controls>
+        <h2 style="text-align:center; margin-top:10px;">Instructional Video</h2>
+        <video id="demo-video" style="width:800px; height:auto; margin-top:10px;" controls>
           <source src="data/Demo Video.mp4" type="video/mp4">
           Your browser does not support the video tag.
         </video>
-        <p style="margin-top:20px; max-width:600px; text-align:center;">
+        <p style="margin-top:10px; text-align:center; max-width:600px;">
           Please watch this video carefully. The "Continue" button will become available only after the video ends.
         </p>
       `,
@@ -671,7 +680,9 @@
 
         function runExperimentForProperty(index) {
           if (index >= properties.length) {
-            if (btn.parentNode) { btn.parentNode.removeChild(btn); }
+            if (btn.parentNode) {
+              btn.parentNode.removeChild(btn);
+            }
             var trialData = {
               object: window.selectedObject,
               group: window.selectedGroupKey,
@@ -709,8 +720,11 @@
           var progress = 0;
           var loadingInterval = setInterval(function () {
             progress += 5;
-            if (progress >= 100) { clearInterval(loadingInterval); }
-            else { loadingBar.style.width = progress + "%"; }
+            if (progress >= 100) {
+              clearInterval(loadingInterval);
+            } else {
+              loadingBar.style.width = progress + "%";
+            }
           }, 100);
 
           fetchImageFilenames(searchKey).then(function(fileNames) {
@@ -815,7 +829,9 @@
                 var phase = phases[currentPhaseIndex];
                 container.innerHTML = `
                   <div id="exp-header" style="text-align:center; margin-top:10px;">
-                    <h3 style="margin:0 0 10px 0;">Saliency object will be moving <span style="font-size:1.5em; text-decoration:underline;">${phase.label}</span></h3>
+                    <h3 style="margin:0 0 10px 0;">
+                      Saliency object will be moving <span style="font-size:1.5em; text-decoration:underline;">${phase.label}</span>
+                    </h3>
                     <h3 id="exp-countdown" style="font-size:72px; font-weight:bold; margin:100px;">3</h3>
                   </div>
                 `;
@@ -849,7 +865,9 @@
                 var phase = phases[currentPhaseIndex];
                 container.innerHTML = `
                   <div id="exp-header" style="text-align:center; margin-top:10px;">
-                    <h3 style="margin:0 0 10px 0;">Saliency object will be moving <span style="font-size:1.5em; text-decoration:underline;">${phase.label}</span></h3>
+                    <h3 style="margin:0 0 10px 0;">
+                      Saliency object will be moving <span style="font-size:1.5em; text-decoration:underline;">${phase.label}</span>
+                    </h3>
                   </div>
                   <div id="exp-content" style="display:flex; justify-content:center; align-items:center;">
                     <div style="margin:5px; text-align:center;">
@@ -980,7 +998,6 @@
     var timeline = [];
     timeline.push(welcomePage);
 
-    // Original "demoPage", now updated to run the new video trial next
     var demoTimeline = {
       timeline: [
         demoPage,
