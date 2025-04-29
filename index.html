@@ -320,19 +320,23 @@
         </div>
       `,
       choices: ['Continue'],
-      on_load: function() {
-        var btn = document.querySelector(".jspsych-btn");
+      on_load: function () {
+        const btn = document.querySelector('.jspsych-btn');
         btn.disabled = true;
-        document.getElementById("device-confirm").addEventListener("change", function() {
-          btn.disabled = !this.checked;
+
+        // hide the scrub bar until video finishes
+        const videoElement = document.getElementById('demo-video');
+        videoElement.controls = false;
+
+        // track watch time as before
+        demoVideoStartTime = Date.now();
+        videoElement.addEventListener('ended', function () {
+          demoVideoWatchTime = (Date.now() - demoVideoStartTime) / 1000;
+          console.log("User watched demo video for", demoVideoWatchTime, "seconds");
+          // re-enable controls (scrub bar) and Continue button
+          videoElement.controls = true;
+          btn.disabled = false;
         });
-      },
-      on_finish: function() {
-        if (!document.fullscreenElement) {
-          document.documentElement.requestFullscreen().catch(function(err) {
-            console.error("Error attempting to enable full screen:", err);
-          });
-        }
       }
     };
 
@@ -396,7 +400,7 @@
       stimulus: `
         <h2 style="text-align:center; margin-top:10px;">Instructional Video</h2>
         <div style="width:100%; max-width:1200px; margin:0 auto; text-align:center;">
-          <video id="demo-video" style="width:100%; height:auto; margin-top:10px;" controls>
+          <video id="demo-video" style="width:100%; height:auto; margin-top:10px;">
             <source src="data/Demo Video.mp4" type="video/mp4">
             Your browser does not support the video tag.
           </video>
