@@ -140,6 +140,18 @@
       align-items: center;
       justify-content: center;
     }
+
+    /* -------- NEW: Hide seek bar on first play -------- */
+    /* Chromium / Edge / Safari */
+    video.no-progress::-webkit-media-controls-timeline,
+    video.no-progress::-webkit-media-controls-current-time-display,
+    video.no-progress::-webkit-media-controls-time-remaining-display {
+      display: none !important;
+    }
+    /* Firefox */
+    video.no-progress::-moz-range-track {
+      visibility: hidden !important;
+    }
   </style>
 
   <!-- mTurk Integration: Generate Unique Survey Code -->
@@ -179,10 +191,6 @@
     // NEW GLOBAL VARIABLES FOR VIDEO WATCH TIME
     var demoVideoStartTime = 0;   // store Date.now() when user arrives on the demo video
     var demoVideoWatchTime = 0;   // number of seconds user actually watched
-
-    // Prevent seeking until video ends
-    var demoVideoAllowSeek = false;
-    var demoVideoLastTime = 0;
 
     function pauseAwareTimeout(callback, delay) {
       setTimeout(function waitForResume() {
@@ -320,23 +328,19 @@
         </div>
       `,
       choices: ['Continue'],
-      on_load: function () {
-        const btn = document.querySelector('.jspsych-btn');
+      on_load: function() {
+        var btn = document.querySelector(".jspsych-btn");
         btn.disabled = true;
-
-        // hide the scrub bar until video finishes
-        const videoElement = document.getElementById('demo-video');
-        videoElement.controls = false;
-
-        // track watch time as before
-        demoVideoStartTime = Date.now();
-        videoElement.addEventListener('ended', function () {
-          demoVideoWatchTime = (Date.now() - demoVideoStartTime) / 1000;
-          console.log("User watched demo video for", demoVideoWatchTime, "seconds");
-          // re-enable controls (scrub bar) and Continue button
-          videoElement.controls = true;
-          btn.disabled = false;
+        document.getElementById("device-confirm").addEventListener("change", function() {
+          btn.disabled = !this.checked;
         });
+      },
+      on_finish: function() {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen().catch(function(err) {
+            console.error("Error attempting to enable full screen:", err);
+          });
+        }
       }
     };
 
@@ -395,13 +399,12 @@
     };
 
     /*************** 2.5) Demo Video Page ***************/
-      var demoVideoTrial = {
-        type: jsPsychHtmlButtonResponse,
-        stimulus: `
+    var demoVideoTrial = {
+      type: jsPsychHtmlButtonResponse,
+      stimulus: `
         <h2 style="text-align:center; margin-top:10px;">Instructional Video</h2>
         <div style="width:100%; max-width:1200px; margin:0 auto; text-align:center;">
-          <!-- remove the 'controls' attribute here -->
-          <video id="demo-video" style="width:100%; height:auto; margin-top:10px;">
+          <video id="demo-video" class="no-progress" style="width:100%; height:auto; margin-top:10px;" controls>
             <source src="data/Demo Video.mp4" type="video/mp4">
             Your browser does not support the video tag.
           </video>
@@ -410,31 +413,34 @@
           Please watch this video carefully. The "Continue" button will become available only after the video ends.
         </p>
       `,
-        choices: ['Continue'],
-        // give this button its own ID so we don't disable every jspsych-btn on the page
-        button_html: '<button id="demo-video-continue" class="jspsych-btn">%choice%</button>',
-        on_load: function () {
-          const btn = document.getElementById('demo-video-continue');
-          const video = document.getElementById('demo-video');
+      choices: ['Continue'],
+      on_load: function() {
+        const btn = document.querySelector('.jspsych-btn');
+        btn.disabled = true; // initially disabled
 
-          // timestamp start
-          demoVideoStartTime = Date.now();
+        // Record start time for the video
+        demoVideoStartTime = Date.now();
 
-          // hide controls & disable *only* this button
-          video.controls = false;
-          btn.disabled = true;
+        const videoElement = document.getElementById('demo-video');
 
-          video.addEventListener('ended', function () {
-            // record watch time
-            demoVideoWatchTime = (Date.now() - demoVideoStartTime) / 1000;
-            console.log("User watched demo video for", demoVideoWatchTime, "seconds");
+        // Block seeking during first play
+        let firstPlay = true;
+        videoElement.addEventListener('seeking', () => {
+          if (firstPlay) {
+            videoElement.currentTime = 0;
+          }
+        });
 
-            // re-enable scrub bar and continue button
-            video.controls = true;
-            btn.disabled = false;
-          });
-        }
-      };
+        // When the video ends, enable button and reveal progress bar
+        videoElement.addEventListener('ended', function() {
+          firstPlay = false;
+          videoElement.classList.remove('no-progress'); // show timeline
+          // Calculate watch time in seconds
+          demoVideoWatchTime = (Date.now() - demoVideoStartTime) / 1000;
+          btn.disabled = false; // enable after video finishes
+        });
+      }
+    };
 
     /*************** 3) Dynamic Demo Trial ***************/
     var dynamicDemoTrial = {
@@ -632,7 +638,7 @@
         </p>
       `,
       choices: ['Redo DEMO', 'START ACTUAL EXPERIMENT'],
-      on_finish: function() { /* Loop handled in timeline */ }
+      on_finish: function () { /* Loop handled in timeline */ }
     };
 
     /*************** 5) Experiment Instructions Page ***************/
