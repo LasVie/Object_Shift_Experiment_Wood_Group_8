@@ -395,11 +395,12 @@
     };
 
     /*************** 2.5) Demo Video Page ***************/
-    var demoVideoTrial = {
-      type: jsPsychHtmlButtonResponse,
-      stimulus: `
+      var demoVideoTrial = {
+        type: jsPsychHtmlButtonResponse,
+        stimulus: `
         <h2 style="text-align:center; margin-top:10px;">Instructional Video</h2>
         <div style="width:100%; max-width:1200px; margin:0 auto; text-align:center;">
+          <!-- remove the 'controls' attribute here -->
           <video id="demo-video" style="width:100%; height:auto; margin-top:10px;">
             <source src="data/Demo Video.mp4" type="video/mp4">
             Your browser does not support the video tag.
@@ -409,36 +410,31 @@
           Please watch this video carefully. The "Continue" button will become available only after the video ends.
         </p>
       `,
-      choices: ['Continue'],
-      on_load: function() {
-        const btn = document.querySelector('.jspsych-btn');
-        btn.disabled = true; // still disabled until finish
+        choices: ['Continue'],
+        // give this button its own ID so we don't disable every jspsych-btn on the page
+        button_html: '<button id="demo-video-continue" class="jspsych-btn">%choice%</button>',
+        on_load: function () {
+          const btn = document.getElementById('demo-video-continue');
+          const video = document.getElementById('demo-video');
 
-        // start-time tracking
-        demoVideoStartTime = Date.now();
+          // timestamp start
+          demoVideoStartTime = Date.now();
 
-        const videoElement = document.getElementById('demo-video');
-        // track last safe time
-        videoElement.addEventListener('timeupdate', function() {
-          if (!demoVideoAllowSeek) {
-            demoVideoLastTime = videoElement.currentTime;
-          }
-        });
-        // block any seeking attempts
-        videoElement.addEventListener('seeking', function() {
-          if (!demoVideoAllowSeek) {
-            videoElement.currentTime = demoVideoLastTime;
-          }
-        });
-        // when finished, allow both the button and seeking
-        videoElement.addEventListener('ended', function() {
-          demoVideoWatchTime = (Date.now() - demoVideoStartTime) / 1000;
-          console.log("User watched demo video for", demoVideoWatchTime, "seconds");
-          demoVideoAllowSeek = true;
-          btn.disabled = false;
-        });
-      }
-    };
+          // hide controls & disable *only* this button
+          video.controls = false;
+          btn.disabled = true;
+
+          video.addEventListener('ended', function () {
+            // record watch time
+            demoVideoWatchTime = (Date.now() - demoVideoStartTime) / 1000;
+            console.log("User watched demo video for", demoVideoWatchTime, "seconds");
+
+            // re-enable scrub bar and continue button
+            video.controls = true;
+            btn.disabled = false;
+          });
+        }
+      };
 
     /*************** 3) Dynamic Demo Trial ***************/
     var dynamicDemoTrial = {
