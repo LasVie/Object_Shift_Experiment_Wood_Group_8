@@ -188,10 +188,12 @@
     function clearYesClickEvents() { yesClickEvents = []; }
     var demoPaused = false;
 
-    // NEW GLOBAL VARIABLES FOR VIDEO WATCH TIME & DEMO SHIFT
+    // NEW GLOBAL FOR DEMO PIXEL-SHIFT
+    window.demoPixelShift = null;            // ← added
+
+    // NEW GLOBAL VARIABLES FOR VIDEO WATCH TIME
     var demoVideoStartTime = 0;   // store Date.now() when user arrives on the demo video
     var demoVideoWatchTime = 0;   // number of seconds user actually watched
-    window.demoChosenShift = null; // store pixel shift detected in demo
 
     function pauseAwareTimeout(callback, delay) {
       setTimeout(function waitForResume() {
@@ -273,9 +275,15 @@
   <script>
     var objectNames = [
       "Book Shelves", 
+      //"Chess", "Wheel", "Food Platter", "Fruits",
+      //"Humming Bird", "Plant", "Swing", "Vase", "Wood"
     ];
     var groups = {
       "Group1": ["Center_100%_Plain", "Center_100%_LowContrast"],
+      //"Group2": ["Left_100%_Plain", "Right_100%_Plain"],
+      //"Group3": ["Up_100%_Plain", "Down_100%_Plain"],
+      //"Group4": ["Center_125%_Plain", "Center_75%_Plain"],
+      //"Group5": ["Center_100%_PatternHoriz", "Center_100%_PatternVert", "Center_100%_Messy"]
     };
 
     function getRandomElement(arr) {
@@ -353,7 +361,7 @@
               <span>Reference Image</span>
             </div>
             <div style="margin:5px; text-align:center;">
-              <img src="image/00001_Cube_Center_100_Plain_N0px.png" alt="Shifted Image" style="width:300px; height:auto;"><br>
+              <img src="image/00031_Cube_Center_100_Plain_L30px.png" alt="Shifted Image" style="width:300px; height:auto;"><br>
               <span>Shifted Image</span>
             </div>
           </div>
@@ -378,7 +386,10 @@
               If the demo suggests lack of attention or understanding, it may affect your final compensation.
             </p>
           </div>
-          <div style="margin-top:10px; font-size:14px;"><input type="checkbox" id="demo-confirm" name="demo-confirm"><label for="demo-confirm">I have read and understood the instructions.</label></div>
+          <div style="margin-top:10px; font-size:14px;">
+            <input type="checkbox" id="demo-confirm" name="demo-confirm">
+            <label for="demo-confirm">I have read and understood the instructions.</label>
+          </div>
         </div>
       `,
       choices: ['Start DEMO'],
@@ -456,7 +467,6 @@
         var loadingStartTime = Date.now();
         var trialFinished = false;
 
-        // Build filenames: reference (N0px) + shifts of 1px increments
         imageFilenames.push("00001_Cube_Center_100_Plain_N0px.png");
         for (var j = 2; j <= numImages; j++) {
           var shift = j - 1;
@@ -521,12 +531,14 @@
           if (!shiftImg) return;
           shiftImg.style.visibility = "hidden";
 
+          // In-between transition: 1000ms --> 500ms
           pauseAwareTimeout(function () {
             currentIndex++;
             shiftImg.src = demoImages[currentIndex].src;
             shiftImg.style.visibility = "visible";
             btn.disabled = false;
             btn.style.opacity = "1";
+            // Blink/update freq: 3000ms --> 2000ms
             pauseAwareTimeout(nextImage, 2000);
           }, 500);
         }
@@ -582,15 +594,19 @@
           btn.style.display = "inline-block";
           btn.disabled = false;
           btn.style.opacity = "1";
+          // First update: 3000ms -> 2000ms
           pauseAwareTimeout(nextImage, 2000);
         }
 
+        /* -------------- MODIFIED CLICK HANDLER -------------- */
         btn.addEventListener("click", function () {
           if (trialFinished) return;
           trialFinished = true;
+
           var shiftImg = document.getElementById("shift-image");
           if (shiftImg) {
             var parsed = parseShiftFromFilename(shiftImg.src);
+            window.demoPixelShift = parsed.shift;      // ← store demo result
             yesClickEvents.push({
               phase: "demo",
               direction: parsed.direction,
@@ -600,10 +616,9 @@
           }
           finishTrial();
         });
+        /* ---------------------------------------------------- */
 
         function finishTrial() {
-          // Store chosen shift for demo
-          window.demoChosenShift = currentIndex;
           var btn = document.querySelector(".jspsych-btn");
           if (btn && btn.parentNode) {
             btn.parentNode.removeChild(btn);
@@ -728,6 +743,7 @@
         }
         runExperimentForProperty(0);
 
+        /* -------- DIRECTIONAL EXPERIMENT FUNCTION -------- */
         function runDirectionalExperiment(searchKey, propertyName, callback) {
           var container = document.getElementById("actual-exp-container");
           container.innerHTML = `
@@ -750,27 +766,30 @@
           fetchImageFilenames(searchKey).then(function(fileNames) {
             if (fileNames.length === 0) {
               container.innerHTML = "<p>No matching images found for key: " + searchKey + ".</p>";
-              callback({}, []);
-              return;
+              callback({}, []); return;
             }
             if (fileNames.length < 401) {
               container.innerHTML = "<p>Expected ≥ 401 images for key: " + searchKey + ", but got " + fileNames.length + ".</p>";
-              callback({}, fileNames);
-              return;
+              callback({}, fileNames); return;
             }
+            fileNames = fileNames.slice(0, 401);
 
-            // Use full sets for 1px increments
-            var originalFilename = fileNames[0];
-            var leftFilenames = fileNames.slice(1, 101);
-            var rightFilenames = fileNames.slice(101, 201);
-            var upFilenames = fileNames.slice(201, 301);
-            var downFilenames = fileNames.slice(301, 401);
+            var originalFilename   = fileNames[0];
+            var leftFilenamesAll   = fileNames.slice(1, 101);  // shifts 1-100 L…
+            var rightFilenamesAll  = fileNames.slice(101, 201);
+            var upFilenamesAll     = fileNames.slice(201, 301);
+            var downFilenamesAll   = fileNames.slice(301, 401);
+
+            /* -------------- NO SKIPPING — 1-px steps -------------- */
+            const leftFilenames  = leftFilenamesAll;
+            const rightFilenames = rightFilenamesAll;
+            const upFilenames    = upFilenamesAll;
+            const downFilenames  = downFilenamesAll;
+
+            /* ------------------------------------------------------ */
 
             var allFilenames = [originalFilename]
-              .concat(leftFilenames)
-              .concat(rightFilenames)
-              .concat(upFilenames)
-              .concat(downFilenames);
+              .concat(leftFilenames, rightFilenames, upFilenames, downFilenames);
 
             var baseImageURL = "https://lasvientuexperimentdata.s3.ap-southeast-1.amazonaws.com/Rendered+Images/";
             function loadImage(src) {
@@ -789,17 +808,22 @@
               }
 
               var originalImage = imageMap[originalFilename];
-              // Prepend reference image so starting image is same
-              var leftImages = [originalImage].concat(leftFilenames.map(fn => imageMap[fn]));
-              var rightImages = [originalImage].concat(rightFilenames.map(fn => imageMap[fn]));
-              var upImages = [originalImage].concat(upFilenames.map(fn => imageMap[fn]));
-              var downImages = [originalImage].concat(downFilenames.map(fn => imageMap[fn]));
+              var leftImages  = leftFilenames .map(fn => imageMap[fn]);
+              var rightImages = rightFilenames.map(fn => imageMap[fn]);
+              var upImages    = upFilenames   .map(fn => imageMap[fn]);
+              var downImages  = downFilenames .map(fn => imageMap[fn]);
 
-              var phases = [
-                { direction: "L", label: "LEFT", images: leftImages },
-                { direction: "R", label: "RIGHT", images: rightImages },
-                { direction: "U", label: "UP", images: upImages },
-                { direction: "D", label: "DOWN", images: downImages }
+              /* ---- Pre-pend reference frame to each phase ---- */
+              const leftPhaseImages  = [originalImage, ...leftImages];
+              const rightPhaseImages = [originalImage, ...rightImages];
+              const upPhaseImages    = [originalImage, ...upImages];
+              const downPhaseImages  = [originalImage, ...downImages];
+
+              const phases = [
+                { direction: "L", label: "LEFT",  images: leftPhaseImages  },
+                { direction: "R", label: "RIGHT", images: rightPhaseImages },
+                { direction: "U", label: "UP",    images: upPhaseImages    },
+                { direction: "D", label: "DOWN",  images: downPhaseImages  }
               ];
 
               var currentPhaseIndex = 0;
@@ -852,17 +876,11 @@
                 `;
                 var count = 3;
                 function expCountdownTick() {
-                  if (demoPaused) {
-                    setTimeout(expCountdownTick, 100);
-                    return;
-                  }
+                  if (demoPaused) { setTimeout(expCountdownTick, 100); return; }
                   count--;
                   document.getElementById("exp-countdown").innerHTML = count;
-                  if (count <= 0) {
-                    startPhase();
-                  } else {
-                    setTimeout(expCountdownTick, 1000);
-                  }
+                  if (count <= 0) { startPhase(); }
+                  else { setTimeout(expCountdownTick, 1000); }
                 }
                 setTimeout(expCountdownTick, 1000);
               }
@@ -937,7 +955,7 @@
                   });
                 }
               }
-              // Start countdown for the current phase
+              // Start countdown for the first phase
               startPhaseCountdown();
             }).catch(function (err) {
               container.innerHTML = "<p>Error loading images: " + err + "</p>";
@@ -946,6 +964,7 @@
             container.innerHTML = "<p>Error fetching image filenames: " + error + "</p>";
           });
         }
+        /* ------------------------------------------------------ */
       }
     };
 
@@ -972,7 +991,7 @@
           };
         });
 
-        // Include the watched time (in seconds) for the demo video
+        /* ------------  INCLUDE DEMO PIXEL-SHIFT  ------------ */
         var finalPayload = {
           participantID: window.participantID,
           selectedObject: window.selectedObject || null,
@@ -980,8 +999,9 @@
           yesClicks: yesClickEvents,
           trialSummary: trialSummary,
           demoVideoWatchTime: demoVideoWatchTime,
-          demoChosenShift: window.demoChosenShift // include demo pixel shift
+          demoPixelShift: window.demoPixelShift ?? null      // ← NEW FIELD
         };
+        /* ---------------------------------------------------- */
 
         var AWS_ENDPOINT = "https://i7nc0ict3h.execute-api.ap-southeast-1.amazonaws.com/storedata";
         fetch(AWS_ENDPOINT, {
@@ -1000,3 +1020,46 @@
     };
 
     /*************** 8) Final Survey Code Page ***************/
+    var finalCodeTrial = {
+      type: jsPsychHtmlButtonResponse,
+      stimulus: `
+        <div style="text-align:center;">
+          <h2>Thank you for participating!</h2>
+          <p>Your unique survey code is: <strong>${window.participantID}</strong></p>
+          <p>Please copy this code and enter it in the HIT survey for verification.</p>
+        </div>
+      `,
+      choices: ['Finish']
+    };
+
+    /*********************************************************
+     * ASSEMBLE TIMELINE
+     *********************************************************/
+    var timeline = [];
+    timeline.push(welcomePage);
+
+    // DEMO Timeline with new video watch time tracking
+    var demoTimeline = {
+      timeline: [
+        demoPage,
+        demoVideoTrial,
+        dynamicDemoTrial,
+        demoCompleteTrial
+      ],
+      loop_function: function(data) {
+        var last_trial = data.values()[data.values().length - 1];
+        // If last trial button was 'Redo DEMO' (response == 0), repeat
+        return last_trial.response === 0;
+      }
+    };
+    timeline.push(demoTimeline);
+
+    timeline.push(experimentInstructions);
+    timeline.push(multiKeyExperimentTrial);
+    timeline.push(finalSubmissionTrial);
+    timeline.push(finalCodeTrial);
+
+    jsPsych.run(timeline);
+  </script>
+</body>
+</html>
