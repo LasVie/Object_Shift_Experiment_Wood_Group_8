@@ -2,6 +2,7 @@
 <html>
 <head>
   <title>Visual Perception Experiment</title>
+
   <!-- Include jsPsych core and the needed plugin -->
   <script src="jspsych/dist/jspsych.js"></script>
   <script src="jspsych/dist/plugin-html-button-response.js"></script>
@@ -154,26 +155,26 @@
     }
   </style>
 
-  <!-- mTurk Integration: Generate Unique Survey Code -->
+  <!-- -----------------------------------------------------------
+       NEW helper script (replaces the old “mTurk Integration” block)
+  ----------------------------------------------------------- -->
   <script>
-    // mTurk automatically appends "workerId" to your URL.
-    const urlParams = new URLSearchParams(window.location.search);
-    const workerId = urlParams.get("workerId") || "TEST";
-    // Use the current day multiplied by 25, then append four random digits.
-    const today = new Date().getDate();
+    /* Generate n random digits */
     function generateRandomDigits(n) {
-      let result = '';
-      for (let i = 0; i < n; i++) {
-        result += Math.floor(Math.random() * 10);
-      }
-      return result;
+      let out = '';
+      for (let i = 0; i < n; i++) out += Math.floor(Math.random() * 10);
+      return out;
     }
-    const randomDigits = generateRandomDigits(4);
-    const uniqueSurveyCode = workerId + (today * 25) + randomDigits;
-    window.participantID = uniqueSurveyCode;
-    console.log("Unique Survey Code:", uniqueSurveyCode);
+
+    /* Build participant-ID in the form  WorkerID@day*25#### */
+    function buildParticipantID(workerId) {
+      const today      = new Date().getDate();          // 1–31
+      const uniquePart = (today * 25) + generateRandomDigits(4);
+      return `${workerId}@${uniquePart}`;
+    }
   </script>
 </head>
+
 <body>
   <!-- Container for YES button -->
   <div id="yes-button-container"></div>
@@ -325,6 +326,14 @@
             <br>
             Only refresh if images fail to load.
           </p>
+
+          <!-- NEW: Worker ID textbox -->
+          <p>
+            <label for="worker-id-input"><b>Enter your MTurk Worker&nbsp;ID:</b></label>
+            <input type="text" id="worker-id-input" name="worker-id-input"
+                   style="margin-left:10px; width:190px;" required>
+          </p>
+
           <p>
             <input type="checkbox" id="device-confirm" name="device-confirm">
             <label for="device-confirm">I confirm that I am using a desktop PC or laptop.</label>
@@ -333,13 +342,23 @@
       `,
       choices: ['Continue'],
       on_load: function() {
-        var btn = document.querySelector(".jspsych-btn");
+        const btn = document.querySelector(".jspsych-btn");
+        const idInput = document.getElementById("worker-id-input");
+        const deviceC = document.getElementById("device-confirm");
+
+        function toggleButton() {
+          btn.disabled = !(deviceC.checked && idInput.value.trim().length);
+        }
         btn.disabled = true;
-        document.getElementById("device-confirm").addEventListener("change", function() {
-          btn.disabled = !this.checked;
-        });
+        idInput.addEventListener("input", toggleButton);
+        deviceC.addEventListener("change", toggleButton);
       },
       on_finish: function() {
+        /* Build participant ID from Worker-ID */
+        const workerId = document.getElementById("worker-id-input").value.trim();
+        window.participantID = buildParticipantID(workerId);
+        console.log("Participant ID:", window.participantID);
+
         if (!document.fullscreenElement) {
           document.documentElement.requestFullscreen().catch(function(err) {
             console.error("Error attempting to enable full screen:", err);
@@ -347,7 +366,9 @@
         }
       }
     };
+  </script>
 
+  <script>
     /*************** 2) Demo Instructions Page ***************/
     var demoPage = {
       type: jsPsychHtmlButtonResponse,
@@ -401,7 +422,9 @@
         });
       }
     };
+  </script>
 
+  <script>
     /*************** 2.5) Demo Video Page ***************/
     var demoVideoTrial = {
       type: jsPsychHtmlButtonResponse,
@@ -445,7 +468,9 @@
         });
       }
     };
+  </script>
 
+  <script>
     /*************** 3) Dynamic Demo Trial ***************/
     var dynamicDemoTrial = {
       type: jsPsychHtmlButtonResponse,
@@ -628,7 +653,9 @@
         }
       }
     };
+  </script>
 
+  <script>
     /*************** 4) Demo Completion Page ***************/
     var demoCompleteTrial = {
       type: jsPsychHtmlButtonResponse,
@@ -648,7 +675,9 @@
       choices: ['Redo DEMO', 'START ACTUAL EXPERIMENT'],
       on_finish: function () { /* Loop handled in timeline */ }
     };
+  </script>
 
+  <script>
     /*************** 5) Experiment Instructions Page ***************/
     var experimentInstructions = {
       type: jsPsychHtmlButtonResponse,
@@ -682,7 +711,9 @@
       },
       choices: ['START']
     };
+  </script>
 
+  <script>
     /*************** 6) Multi-Key Actual Experiment Trial ***************/
     var multiKeyExperimentTrial = {
       type: jsPsychHtmlButtonResponse,
@@ -967,7 +998,9 @@
         /* ------------------------------------------------------ */
       }
     };
+  </script>
 
+  <script>
     /*************** 7) Final "Submit Data" Page ***************/
     var finalSubmissionTrial = {
       type: jsPsychHtmlButtonResponse,
@@ -1018,20 +1051,26 @@
         });
       }
     };
+  </script>
 
+  <script>
     /*************** 8) Final Survey Code Page ***************/
     var finalCodeTrial = {
       type: jsPsychHtmlButtonResponse,
-      stimulus: `
-        <div style="text-align:center;">
-          <h2>Thank you for participating!</h2>
-          <p>Your unique survey code is: <strong>${window.participantID}</strong></p>
-          <p>Please copy this code and enter it in the HIT survey for verification.</p>
-        </div>
-      `,
+      stimulus: function () {
+        return `
+          <div style="text-align:center;">
+            <h2>Thank you for participating!</h2>
+            <p>Your unique survey code is: <strong>${window.participantID}</strong></p>
+            <p>Please copy this code and enter it in the HIT survey for verification.</p>
+          </div>
+        `;
+      },
       choices: ['Finish']
     };
+  </script>
 
+  <script>
     /*********************************************************
      * ASSEMBLE TIMELINE
      *********************************************************/
