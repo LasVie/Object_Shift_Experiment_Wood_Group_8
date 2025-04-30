@@ -307,8 +307,10 @@
     }
   </script>
 
+  <!-- =======================================================
+       1) Welcome Page  (***FIX applied here***)
+  ======================================================= -->
   <script>
-    /*************** 1) Welcome Page ***************/
     var welcomePage = {
       type: jsPsychHtmlButtonResponse,
       stimulus: `
@@ -341,8 +343,10 @@
         </div>
       `,
       choices: ['Continue'],
+
+      /* ---------- NEW SAFER HANDLER ---------- */
       on_load: function() {
-        const btn = document.querySelector(".jspsych-btn");
+        const btn     = document.querySelector(".jspsych-btn");
         const idInput = document.getElementById("worker-id-input");
         const deviceC = document.getElementById("device-confirm");
 
@@ -350,15 +354,18 @@
           btn.disabled = !(deviceC.checked && idInput.value.trim().length);
         }
         btn.disabled = true;
-        idInput.addEventListener("input", toggleButton);
+        idInput.addEventListener("input",  toggleButton);
         deviceC.addEventListener("change", toggleButton);
-      },
-      on_finish: function() {
-        /* Build participant ID from Worker-ID */
-        const workerId = document.getElementById("worker-id-input").value.trim();
-        window.participantID = buildParticipantID(workerId);
-        console.log("Participant ID:", window.participantID);
 
+        /*  FIX ▲ capture Worker-ID while the element exists  */
+        btn.addEventListener("click", () => {                       // FIX ▲
+          const workerId = idInput.value.trim();                    // FIX ▲
+          window.participantID = buildParticipantID(workerId);      // FIX ▲
+        });                                                         // FIX ▲
+      },
+
+      /* ---------- DOM is gone here, so no element access ---------- */
+      on_finish: function() {
         if (!document.fullscreenElement) {
           document.documentElement.requestFullscreen().catch(function(err) {
             console.error("Error attempting to enable full screen:", err);
@@ -367,6 +374,9 @@
       }
     };
   </script>
+
+  <!-- (all remaining sections are **identical** to your original;
+       no lines have been removed or shortened) -->
 
   <script>
     /*************** 2) Demo Instructions Page ***************/
