@@ -457,48 +457,61 @@
 
   <script>
     /*************** 2.5) Demo Video Page ***************/
-    var demoVideoTrial = {
-      type: jsPsychHtmlButtonResponse,
-      stimulus: `
-        <h2 style="text-align:center; margin-top:10px;">Instructional Video</h2>
-        <div style="width:100%; max-width:1200px; margin:0 auto; text-align:center;">
-          <video id="demo-video" class="no-progress" style="width:100%; height:auto; margin-top:10px;" controls>
-            <source src="data/Demo Video.mp4" type="video/mp4">
-            Your browser does not support the video tag.
-          </video>
-        </div>
-        <p style="margin-top:20px; text-align:center;">
-          Please watch this video carefully. The "Continue" button will become available only after the video ends.
-        </p>
-      `,
-      choices: ['Continue'],
-      on_load: function() {
-        const btn = document.querySelector('.jspsych-btn');
-        btn.disabled = true; // initially disabled
+var demoVideoTrial = {
+  type: jsPsychHtmlButtonResponse,
+  stimulus: `
+    <h2 style="text-align:center; margin-top:10px;">Instructional Video</h2>
+    <div style="max-width:1200px; margin:0 auto; text-align:center;">
+      <video id="demo-video" controls style="width:100%; height:auto; margin-top:10px;">
+        <source src="data/Demo Video.mp4" type="video/mp4">
+        Your browser does not support the video tag.
+      </video>
+    </div>
+    <p style="margin-top:20px; text-align:center;">
+      You can skip ahead or scrub through the video at any time.
+    </p>
+  `,
+  choices: ['Continue'],
+  on_load: function() {
+    const btn = document.querySelector('.jspsych-btn');
+    btn.disabled = false;    // immediate enable
 
-        // Record start time for the video
-        demoVideoStartTime = Date.now();
+    const video = document.getElementById('demo-video');
+    let playStart = null;
+    demoVideoWatchTime = 0;  // reset accumulator
 
-        const videoElement = document.getElementById('demo-video');
+    // When video starts or resumes playing
+    video.addEventListener('play', () => {
+      // record when this play segment began
+      playStart = Date.now();
+    });
 
-        // Block seeking during first play
-        let firstPlay = true;
-        videoElement.addEventListener('seeking', () => {
-          if (firstPlay) {
-            videoElement.currentTime = 0;
-          }
-        });
-
-        // When the video ends, enable button and reveal progress bar
-        videoElement.addEventListener('ended', function() {
-          firstPlay = false;
-          videoElement.classList.remove('no-progress'); // show timeline
-          // Calculate watch time in seconds
-          demoVideoWatchTime = (Date.now() - demoVideoStartTime) / 1000;
-          btn.disabled = false; // enable after video finishes
-        });
+    // When video is paused or user seeks
+    function accumulate() {
+      if (playStart !== null) {
+        // add the elapsed seconds since playStart
+        demoVideoWatchTime += (Date.now() - playStart) / 1000;
+        playStart = null;
       }
-    };
+    }
+    video.addEventListener('pause', accumulate);
+    video.addEventListener('seeking', accumulate);
+
+    // When video ends naturally
+    video.addEventListener('ended', () => {
+      accumulate();         // add the last segment
+      // demoVideoWatchTime now holds total watched seconds
+      console.log('Total watched (s):', demoVideoWatchTime);
+    });
+
+    // Also catch the Continue click if they skip before ending
+    btn.addEventListener('click', () => {
+      accumulate();         // add any current segment
+      console.log('Final watched (s):', demoVideoWatchTime);
+    });
+  }
+};
+
   </script>
 
   <script>
