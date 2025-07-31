@@ -1,18 +1,23 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <title>Visual Perception Experiment</title>
 
-  <!-- Include jsPsych core and the needed plugin -->
+  <!-- Include jsPsych core and plugins -->
   <script src="jspsych/dist/jspsych.js"></script>
   <script src="jspsych/dist/plugin-html-button-response.js"></script>
-  <!-- Include the default jsPsych CSS for basic styling -->
+  <script src="jspsych/dist/plugin-call-function.js"></script>
+
+  <!-- Default jsPsych styling -->
   <link href="jspsych/dist/jspsych.css" rel="stylesheet" type="text/css" />
 
   <style>
-    p { text-align: justify; }
+    /* =================  ORIGINAL CSS  ================= */
+    p {
+      text-align: justify;
+    }
 
-    /* University logo */
     .university-logo {
       position: absolute;
       top: 10px;
@@ -20,7 +25,6 @@
       height: 60px;
     }
 
-    /* Welcome text container */
     .welcome-container {
       margin-top: 20px;
       margin-left: 100px;
@@ -28,7 +32,6 @@
       text-align: left;
     }
 
-    /* Demo/Experiment image styling */
     .demo-image {
       max-width: 45vw;
       max-height: calc(100vh - 150px);
@@ -36,22 +39,21 @@
       height: auto;
     }
 
-    /* jsPsych button styling */
     .jspsych-btn {
       font-weight: bold;
       font-size: 20px;
-      background-color: #4CAF50;
-      color: white;
+      background: #4CAF50;
+      color: #fff;
       border: none;
       border-radius: 4px;
       padding: 10px 20px;
       cursor: pointer;
     }
+
     .jspsych-btn:hover {
-      background-color: #45a049;
+      background: #45a049;
     }
 
-    /* Fixed container for YES button */
     #yes-button-container {
       position: fixed;
       bottom: 0;
@@ -59,27 +61,25 @@
       z-index: 1000;
     }
 
-    /* Fullscreen overlay */
     #fullscreen-overlay {
       position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: rgba(128,128,128,0.7);
+      inset: 0;
+      background: rgba(128, 128, 128, .7);
       z-index: 10000;
       display: flex;
       align-items: center;
       justify-content: center;
     }
+
     #fullscreen-overlay .prompt-box {
-      background-color: white;
+      background: #fff;
       padding: 20px;
       border-radius: 8px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.5);
-      text-align: center;
+      box-shadow: 0 0 10px rgba(0, 0, 0, .5);
       max-width: 90%;
+      text-align: center;
     }
+
     #fullscreen-overlay button {
       font-size: 16px;
       margin: 10px;
@@ -88,39 +88,42 @@
       border-radius: 4px;
       cursor: pointer;
     }
-    #fullscreen-overlay button:hover { opacity: 0.9; }
 
-    /* Loading screen styles */
+    #fullscreen-overlay button:hover {
+      opacity: 0.9;
+    }
+
     .loading-container {
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      font-family: Arial, sans-serif;
+      font-family: Arial;
       margin-top: 50px;
     }
+
     .loading-container p {
       font-size: 24px;
       margin-bottom: 10px;
     }
+
     .progress-bar-container {
       width: 300px;
       height: 20px;
-      background-color: #eee;
+      background: #eee;
       border-radius: 10px;
-      margin: 0 auto;
       overflow: hidden;
-      box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
+      box-shadow: inset 0 0 5px rgba(0, 0, 0, .2);
     }
+
     .progress-bar {
       height: 100%;
       width: 0%;
-      background-color: #007bff;
+      background: #007bff;
       border-radius: 10px;
-      transition: width 0.2s ease-in-out;
+      transition: width .2s;
     }
 
-    /* Circular progress indicator at bottom left (smaller circle) */
     #progress-circle {
       position: fixed;
       bottom: 10px;
@@ -133,7 +136,6 @@
       display: none;
     }
 
-    /* Center the stimulus and button in one column */
     .jspsych-html-button-response-stimulus,
     #jspsych-html-button-response-btngroup {
       display: flex;
@@ -142,142 +144,113 @@
       justify-content: center;
     }
 
-    /* -------- NEW: Hide seek bar on first play -------- */
+    /* ───────────── HIDE VIDEO SEEK / TIME BAR ───────────── */
     /* Chromium / Edge / Safari */
     video.no-progress::-webkit-media-controls-timeline,
     video.no-progress::-webkit-media-controls-current-time-display,
     video.no-progress::-webkit-media-controls-time-remaining-display {
       display: none !important;
     }
-    /* Firefox */
-    video.no-progress::-moz-range-track {
+
+    /* Firefox – hide the timeline and draggable knob */
+    video.no-progress::-moz-range-track,
+    video.no-progress::-moz-range-thumb {
       visibility: hidden !important;
+    }
+
+
+    /* ---- ZOOM-VIOLATION OVERLAY ---- */
+    #zoom-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(128, 128, 128, .7);
+      z-index: 10000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #zoom-overlay .prompt-box {
+      background: #fff;
+      padding: 24px 32px;
+      border-radius: 8px;
+      box-shadow: 0 0 12px rgba(0, 0, 0, .4);
+      max-width: 90%;
+      text-align: center;
+    }
+
+    #zoom-overlay button {
+      margin: 12px 10px 0;
+      padding: 8px 18px;
+      font-size: 16px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    #zoom-overlay button:hover {
+      opacity: .9;
     }
   </style>
 
-  <!-- -----------------------------------------------------------
-       NEW helper script (replaces the old “mTurk Integration” block)
-  ----------------------------------------------------------- -->
+  <!-- ---------- Worker-ID helpers ---------- -->
   <script>
-    /* Generate n random digits */
-    function generateRandomDigits(n) {
-      let out = '';
-      for (let i = 0; i < n; i++) out += Math.floor(Math.random() * 10);
-      return out;
-    }
-
-    /* Build participant-ID in the form  WorkerID@day*25#### */
-    function buildParticipantID(workerId) {
-      const today      = new Date().getDate();          // 1–31
-      const uniquePart = (today * 25) + generateRandomDigits(4);
-      return `${workerId}@${uniquePart}`;
-    }
+    function generateRandomDigits(n) { let s = ''; for (let i = 0; i < n; i++) s += Math.floor(Math.random() * 10); return s; }
+    function buildParticipantID(id) { const d = new Date().getDate(); return `${id}@${d * 25 + generateRandomDigits(4)}`; }
   </script>
 </head>
 
 <body>
-  <!-- Container for YES button -->
   <div id="yes-button-container"></div>
-  <!-- Circular progress indicator -->
   <div id="progress-circle"></div>
 
   <script>
-    /*********************************************************
-     * GLOBAL VARIABLES & HELPER FUNCTIONS
-     *********************************************************/
-    var yesClickEvents = [];
-    function clearYesClickEvents() { yesClickEvents = []; }
+    /********* GLOBALS & FULLSCREEN-EXIT HANDLER *********/
+    var yesClickEvents = []; function clearYesClickEvents() { yesClickEvents = []; }
     var demoPaused = false;
+    window.demoPixelShift = null;
+    var demoVideoStartTime = 0, demoVideoWatchTime = 0;
 
-    // NEW GLOBAL FOR DEMO PIXEL-SHIFT
-    window.demoPixelShift = null;            // ← added
+    function pauseAwareTimeout(cb, d) { setTimeout(function f() { demoPaused ? setTimeout(f, 100) : cb(); }, d); }
+    function parseShiftFromFilename(u) { const m = u.match(/_(L|R|U|D)(\d+)px/); return m ? { direction: m[1], shift: +m[2] } : { direction: null, shift: 0 }; }
 
-    // NEW GLOBAL VARIABLES FOR VIDEO WATCH TIME
-    var demoVideoStartTime = 0;   // store Date.now() when user arrives on the demo video
-    var demoVideoWatchTime = 0;   // number of seconds user actually watched
+    var jsPsych = initJsPsych({ override_safe_mode: true, experiment_width: 1000 });
 
-    function pauseAwareTimeout(callback, delay) {
-      setTimeout(function waitForResume() {
-        if (demoPaused) { setTimeout(waitForResume, 100); }
-        else { callback(); }
-      }, delay);
-    }
-
-    function parseShiftFromFilename(url) {
-      var match = url.match(/_(L|R|U|D)(\d+)px/);
-      if (!match) return { direction: null, shift: 0 };
-      return { direction: match[1], shift: parseInt(match[2], 10) };
-    }
-
-    var jsPsych = initJsPsych({
-      override_safe_mode: true,
-      experiment_width: 1000
-    });
-
-    document.addEventListener("fullscreenchange", function () {
+    document.addEventListener('fullscreenchange', function () {
       if (!document.fullscreenElement) {
         demoPaused = true;
-        var overlay = document.createElement("div");
-        overlay.id = "fullscreen-overlay";
-
-        var promptBox = document.createElement("div");
-        promptBox.className = "prompt-box";
-
-        var message = document.createElement("p");
-        message.innerHTML = `
-          You have exited full screen mode.<br><br>
-          Press <strong>Resume</strong> to re-enter full screen, or 
-          <strong>Quit</strong> to return to the main screen (all progress lost!).
-        `;
-        promptBox.appendChild(message);
-
-        var btnQuit = document.createElement("button");
-        btnQuit.textContent = "Quit";
-        btnQuit.style.backgroundColor = "#d9534f";
-        btnQuit.style.color = "white";
-        btnQuit.onclick = function () {
-          if (document.getElementById("fullscreen-overlay")) {
-            document.body.removeChild(overlay);
-          }
-          window.location.reload();
+        const ov = document.createElement('div'); ov.id = 'fullscreen-overlay';
+        const box = document.createElement('div'); box.className = 'prompt-box';
+        box.innerHTML = 'You have exited full screen mode.<br><br>\
+                       Press <strong>Resume</strong> to re-enter full screen, or \
+                       <strong>Quit</strong> to return to the main screen (all progress lost!).';
+        const q = document.createElement('button'); q.textContent = 'Quit';
+        q.style.background = '#d9534f'; q.style.color = '#fff';
+        q.onclick = () => { document.body.removeChild(ov); window.location.reload(); };
+        const r = document.createElement('button'); r.textContent = 'Resume';
+        r.style.background = '#5cb85c'; r.style.color = '#fff';
+        r.onclick = () => {
+          document.body.removeChild(ov);
+          document.documentElement.requestFullscreen().then(() => { demoPaused = false; jsPsych.resumeExperiment?.(); });
         };
-
-        var btnResume = document.createElement("button");
-        btnResume.textContent = "Resume";
-        btnResume.style.backgroundColor = "#5cb85c";
-        btnResume.style.color = "white";
-        btnResume.onclick = function () {
-          if (document.getElementById("fullscreen-overlay")) {
-            document.body.removeChild(overlay);
-          }
-          document.documentElement.requestFullscreen().then(function () {
-            demoPaused = false;
-            if (typeof jsPsych.resumeExperiment === "function") {
-              jsPsych.resumeExperiment();
-            }
-          }).catch(function (err) {
-            console.error("Error re-entering full screen:", err);
-          });
-        };
-
-        promptBox.appendChild(btnQuit);
-        promptBox.appendChild(btnResume);
-
-        overlay.appendChild(promptBox);
-        document.body.appendChild(overlay);
-
-        if (typeof jsPsych.pauseExperiment === "function") {
-          jsPsych.pauseExperiment();
-        }
+        box.appendChild(q); box.appendChild(r); ov.appendChild(box); document.body.appendChild(ov); jsPsych.pauseExperiment?.();
       }
     });
   </script>
 
+  <!-- ---------- Stimulus lists & filename-cache ---------- -->
   <script>
+    const SCALES = [1];   // 100 %, 75 %, 60 %
+    let scaleIndex = 0;                // current round
+    const imageCache = {};               // filename → Image() (saved in memory)
+    window.stimSizesByScale = {};
+
     var objectNames = [
       "Book Shelves", 
-      //"Chess", "Wheel", "Food Platter", "Fruits",
-      //"Humming Bird", "Plant", "Swing", "Vase", "Wood"
+      //"Chess", 
+      //"Wheel", "Food Platter", "Fruits", "Humming Bird",
+      //"Plant", "Swing", "Vase", 
+      //"Wood"
     ];
     var groups = {
       //"Group1": ["Center_100%_Plain", "Center_100%_LowContrast"],
@@ -286,51 +259,40 @@
       //"Group4": ["Center_125%_Plain", "Center_75%_Plain"],
       //"Group5": ["Center_100%_PatternHoriz", "Center_100%_PatternVert", "Center_100%_Messy"]
     };
+    function getRandomElement(a) { return a[Math.floor(Math.random() * a.length)]; }
 
-    function getRandomElement(arr) {
-      return arr[Math.floor(Math.random() * arr.length)];
-    }
-  </script>
-
-  <script>
-    // CACHING FOR IMAGE FILENAMES
-    window._allFilenamesPromise = null;
-    window._filenameListCache = {};
-
-    function fetchImageFilenames(searchKey) {
-      // 1) Lazy-load the full JSON exactly once:
+    window._allFilenamesPromise = null; window._filenameListCache = {};
+    function fetchImageFilenames(key) {
       if (!window._allFilenamesPromise) {
-        window._allFilenamesPromise = fetch(
-          "https://lasvientuexperimentdata.s3.ap-southeast-1.amazonaws.com/Rendered+Images/filenames.json",
-          { cache: "force-cache" }
-        )
-        .then(response => {
-          if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-          return response.json();
-        });
+        window._allFilenamesPromise = fetch("https://lasvientuexperimentdata.s3.ap-southeast-1.amazonaws.com/Rendered+Images/filenames.json", { cache: "force-cache" })
+          .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); });
       }
-
-      // 2) If we've already filtered for this key, return the cached array:
-      if (window._filenameListCache[searchKey]) {
-        return Promise.resolve(window._filenameListCache[searchKey]);
-      }
-
-      // 3) Otherwise filter & sort once, cache the result, and return it:
-      return window._allFilenamesPromise
-        .then(data => {
-          const matching = data
-            .filter(file => file.name.includes(searchKey))
-            .sort((a, b) => a.name.localeCompare(b.name))
-            .map(file => file.name);
-          window._filenameListCache[searchKey] = matching;
-          return matching;
-        });
+      if (window._filenameListCache[key]) return Promise.resolve(window._filenameListCache[key]);
+      return window._allFilenamesPromise.then(d => {
+        const match = d.filter(f => f.name.includes(key)).sort((a, b) => a.name.localeCompare(b.name)).map(f => f.name);
+        window._filenameListCache[key] = match; return match;
+      });
     }
   </script>
 
-  <!-- =======================================================
-       1) Welcome Page  (***FIX applied here***)
-  ======================================================= -->
+  <!-- ====================================================================
+     HELPER — cached image loader  (place once, high in the file)
+==================================================================== -->
+  <script>
+    /* returns a Promise that resolves with an Image(), using the cache */
+    function loadImage(url) {
+      if (imageCache[url]) return Promise.resolve(imageCache[url]);
+
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => { imageCache[url] = img; resolve(img); };
+        img.onerror = () => reject(url);
+        img.src = url;
+      });
+    }
+  </script>
+
+  <!-- ================== 1) Welcome Page ================== -->
   <script>
     var welcomePage = {
       type: jsPsychHtmlButtonResponse,
@@ -348,11 +310,14 @@
             Please do not refresh the page during the experiment; refreshing will cause all progress to be lost.
             <br>
             Only refresh if images fail to load.
+            <br>
+            <br>
+            Please set the browser zoom level to 100%, failing to do so will result in HIT task rejection. 
           </p>
 
           <!-- NEW: Worker ID textbox -->
           <p>
-            <label for="worker-id-input"><b>Enter your MTurk Worker&nbsp;ID:</b></label>
+            <label for="worker-id-input"><b>Enter your MTurk Worker&nbsp;ID (Incorrect ID will not recieve payout):</b></label>
             <input type="text" id="worker-id-input" name="worker-id-input"
                    style="margin-left:10px; width:190px;" required>
           </p>
@@ -365,9 +330,9 @@
       `,
       choices: ['Continue'],
 
-      /* ---------- NEW SAFER HANDLER ---------- */
-      on_load: function() {
-        const btn     = document.querySelector(".jspsych-btn");
+      /* ---------- SAFER HANDLER ---------- */
+      on_load: function () {
+        const btn = document.querySelector(".jspsych-btn");
         const idInput = document.getElementById("worker-id-input");
         const deviceC = document.getElementById("device-confirm");
 
@@ -375,20 +340,18 @@
           btn.disabled = !(deviceC.checked && idInput.value.trim().length);
         }
         btn.disabled = true;
-        idInput.addEventListener("input",  toggleButton);
+        idInput.addEventListener("input", toggleButton);
         deviceC.addEventListener("change", toggleButton);
 
-        /*  FIX ▲ capture Worker-ID while the element exists  */
-        btn.addEventListener("click", () => {                       // FIX ▲
-          const workerId = idInput.value.trim();                    // FIX ▲
-          window.participantID = buildParticipantID(workerId);      // FIX ▲
-        });                                                         // FIX ▲
+        btn.addEventListener("click", () => {
+          const workerId = idInput.value.trim();
+          window.participantID = buildParticipantID(workerId);
+        });
       },
 
-      /* ---------- DOM is gone here, so no element access ---------- */
-      on_finish: function() {
+      on_finish: function () {
         if (!document.fullscreenElement) {
-          document.documentElement.requestFullscreen().catch(function(err) {
+          document.documentElement.requestFullscreen().catch(function (err) {
             console.error("Error attempting to enable full screen:", err);
           });
         }
@@ -396,11 +359,442 @@
     };
   </script>
 
-  <!-- (all remaining sections are **identical** to your original;
-       no lines have been removed or shortened) -->
+  <script>
+    /* ------------------------------------------------------------------
+     * Disqualify notice + ONE-SHOT upload
+     * ----------------------------------------------------------------*/
+    function showDisqualifyPage(reason = "verification_fail") {
+
+      /* ===== 1)  SEND minimal payload ===== */
+      /* make sure the constant exists somewhere global */
+      const AWS_ENDPOINT = "https://i7nc0ict3h.execute-api.ap-southeast-1.amazonaws.com/storedata";
+
+      /* build payload exactly as Lambda expects */
+      fetch(AWS_ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          participantID: window.participantID || Date.now().toString(),
+          demoVideoWatchTime: 0              // REQUIRED: always 0 for fails
+        })
+      }).catch(err => console.error("DQ upload error:", err));
+
+      /* ===== 2)  Replace the DOM with ‘fail’ page ===== */
+      document.body.innerHTML = `
+    <style>
+      body{margin:0;background:#f7f7f7;font-family:Arial,Helvetica,sans-serif}
+      #dq-wrap{max-width:680px;margin:14vh auto;background:#fff;border-radius:12px;
+               box-shadow:0 8px 28px rgba(0,0,0,.12);padding:50px 60px 60px;text-align:center}
+      #dq-wrap h2{margin-top:0;font-size:28px;color:#d9534f}
+      #dq-wrap p{font-size:18px;line-height:1.5;margin:22px 0 36px;color:#333}
+      #dq-close{padding:12px 46px;font-size:20px;border:none;border-radius:6px;
+                background:#d9534f;color:#fff;cursor:pointer}
+      #dq-close:hover{opacity:.9}
+    </style>
+
+    <div id="dq-wrap">
+      <h2>Device requirements not met</h2>
+      <p>
+        Your monitor size / resolution is outside the limits for this experiment.<br>
+        The HIT associated with this session will unfortunately be <strong>rejected</strong>.<br>
+        You may close this page now.
+      </p>
+      <button id="dq-close">Close</button>
+    </div>`;
+
+      /* close the tab / window when the user clicks Close */
+      document.getElementById("dq-close").onclick = () => {
+        window.open('', '_self');   // mark tab as “script-opened”
+        window.close();
+      };
+    }
+  </script>
+
+  <!-- ================= 2) DISPLAY-VERIFICATION PAGE  (FULL CODE) ================= -->
+  <script>
+    /* ──────────────────────────────────────────────────────────────────────────────
+     *  GLOBAL HELPERS
+     * ──────────────────────────────────────────────────────────────────────────── */
+    let recheckAttempts = 0;                     // # times “Re-check” pressed
+
+    const badge = ok =>
+      ok
+        ? '<span style="color:#28a745;font-weight:bold;">PASS</span>'
+        : '<span style="color:#dc3545;font-weight:bold;">FAIL</span>';
+
+    let _zb = null;                              // zoom-blocker handle
+    function installZoomBlocker() {
+      _zb = e => {
+        if ((e.ctrlKey || e.metaKey) &&
+          (['+', '=', '-', '_', '0'].includes(e.key) || e.type === 'wheel')) {
+          e.preventDefault();
+          return false;
+        }
+      };
+      window.addEventListener('keydown', _zb, { passive: false });
+      window.addEventListener('wheel', _zb, { passive: false });
+    }
+    function removeZoomBlocker() {
+      if (_zb) {
+        window.removeEventListener('keydown', _zb, { passive: false });
+        window.removeEventListener('wheel', _zb, { passive: false });
+        _zb = null;
+      }
+    }
+
+    /* ──────────────────────────────────────────────────────────────────────────────
+     *  jsPsych TRIAL  ▸  verificationPage
+     * ──────────────────────────────────────────────────────────────────────────── */
+    const verificationPage = {
+      type: jsPsychHtmlButtonResponse,
+
+      /* three buttons in this order */
+      choices: ['Re-check', 'Quit', 'Continue'],
+
+      /* jsPsych 7 calls this as a function; older versions accept it too           */
+      /* i  = index (0,1,2)   label = '%choice%' placeholder                         */
+      button_html: function (choice, index) {
+        // red background only for the second button (“Quit”)
+        const style = (index === 1)
+          ? 'style="background:#d9534f;color:#fff;"'
+          : '';
+        return `<button class="jspsych-btn" ${style}>${choice}</button>`;
+      },
+
+      /* ------------------------------------------------------------------------ */
+      stimulus: () => {
+        // ───────── inside verificationPage.stimulus (and again in on_load) ─────────
+        const dpr = window.devicePixelRatio || 1,
+          swCSS = screen.width,
+          shCSS = screen.height,
+          vw = innerWidth,
+          vh = innerHeight,
+          swPhy = Math.round(swCSS * dpr),   // physical pixels
+          shPhy = Math.round(shCSS * dpr);
+
+        // 👇 NEW tolerance band for a 1920 × 1080 panel
+        const ok1080 = (swPhy >= 1880 && swPhy <= 1960) &&   // allow ±40 px
+          (shPhy >= 1040 && shPhy <= 1120);
+
+        // keep the old DPR test exactly as‑is
+        const okDPR = (dpr >= 1.20 && dpr <= 1.30);
+
+        const winOK = Math.abs(((swCSS * dpr) / innerWidth) - dpr) < 0.02;
+        const passAll = ok1080 && okDPR && winOK;
+
+        /* extra CSS so the button group is always visible */
+        const style = `
+      <style>
+        #jspsych-html-button-response-btngroup{
+          display:flex !important; justify-content:center !important;
+          gap:24px; margin-top:50px;
+        }
+        .jspsych-content-wrapper{ min-height:650px; }
+        .jspsych-btn{ font-size:18px;padding:10px 32px; }
+      </style>`;
+
+        let html = style + `
+      <h2 style="text-align:center;margin-top:10px;">Display Verification</h2>
+
+      <table style="margin:0 auto;font-size:18px;line-height:1.4;">
+        <tr><td><b>Device resolution&nbsp;(physical)</b></td>
+            <td>${swPhy} × ${shPhy}&nbsp;px</td></tr>
+        <tr><td><b>Browser viewport&nbsp;(CSS)</b></td>
+            <td>${vw} × ${vh}&nbsp;px</td></tr>
+        <tr><td><b>OS scaling factor</b></td>
+            <td>${dpr.toFixed(2)}&nbsp;(~${Math.round(dpr * 100)}%)</td></tr>
+      </table>
+
+      <p style="text-align:center;font-size:22px;margin:20px 0;">
+        Resolution&nbsp;status&nbsp;:&nbsp;${badge(passAll)}
+      </p>
+
+      <p style="max-width:800px;margin:0 auto 40px;font-size:17px;text-align:left;">
+        We require a 1920 × 1080 monitor (≈ 15.6″) at
+        <b>125 % OS scaling</b> and <b>100 % browser zoom</b>.
+      </p>`;
+
+        /* extra credit-card calibration only if resolution passes */
+        if (passAll) {
+          html += `
+        <hr style="margin:0 0 30px;">
+        <div style="max-width:900px;margin:0 auto;text-align:left;">
+          <p style="font-size:20px;font-weight:700;">Physical-size calibration</p>
+          <p>Drag until the <span style="font-weight:700;">grey card</span>
+             matches a real credit&nbsp;card.</p>
+        </div>
+
+        <div style="display:flex;justify-content:center;">
+          <div id="card-block"
+               style="width:500px;height:315px;background:#dedede;
+                      border:1px solid #999;border-radius:8px;"></div>
+        </div>
+
+        <input id="card-slider" type="range" min="80" max="700" value="120"
+               style="width:90%;display:block;margin:30px auto 0;">
+
+        <div style="text-align:center;margin-top:32px;">
+          <button id="card-check"
+                  style="padding:10px 34px;font-size:18px;border:none;border-radius:4px;
+                         background:#0d6efd;color:#fff;cursor:pointer;">
+            Check size
+          </button>
+          <p id="card-msg" style="margin-top:12px;font-size:18px;font-weight:700;"></p>
+        </div>`;
+        }
+
+        return html;
+      },
+
+      /* ------------------------------------------------------------------------ */
+      on_load: () => {
+        installZoomBlocker();
+
+        /* re-eval pass/fail for logic here */
+        /* re‑eval pass/fail for logic here */
+        const dpr = window.devicePixelRatio || 1,
+          swCSS = screen.width,
+          shCSS = screen.height,
+          swPhy = Math.round(swCSS * dpr),
+          shPhy = Math.round(shCSS * dpr),
+
+          ok1080 = (swPhy >= 1880 && swPhy <= 1960) &&
+            (shPhy >= 1040 && shPhy <= 1120),
+          okDPR = (dpr >= 1.20 && dpr <= 1.30),
+          winOK = Math.abs(((swCSS * dpr) / innerWidth) - dpr) < 0.02,
+
+          passAll = ok1080 && okDPR && winOK;
+
+        const [reBtn, quitBtn, contBtn] =
+          document.querySelectorAll('.jspsych-btn');
+
+        /* Quit always disqualifies */
+        quitBtn.onclick = () => showDisqualifyPage();
+
+        /* ---------------- RESOLUTION FAIL ---------------- */
+        if (!passAll) {
+          contBtn.disabled = true;
+          contBtn.style.opacity = '.4';
+
+          if (recheckAttempts >= 2) {
+            reBtn.disabled = true;
+            reBtn.style.opacity = '.4';
+          }
+          return;
+        }
+
+        /* ---------------- RESOLUTION PASS ---------------- */
+        reBtn.style.display = 'none';
+        quitBtn.style.display = 'none';
+
+        const ASPECT = 85.6 / 53.98,
+          slide = document.getElementById('card-slider'),
+          card = document.getElementById('card-block'),
+          check = document.getElementById('card-check'),
+          msg = document.getElementById('card-msg');
+
+        slide.oninput = () => {
+          card.style.width = slide.value + 'px';
+          card.style.height = (slide.value / ASPECT) + 'px';
+        };
+        slide.oninput();
+
+        contBtn.disabled = true;
+        contBtn.style.opacity = '.4';
+
+        check.onclick = () => {
+          const mmPerPx = 85.6 / slide.value,
+            diagIn = Math.hypot(screen.width, screen.height) *
+              (mmPerPx / 25.4),
+            ok = (diagIn >= 15.3 && diagIn <= 15.9),
+            clr = ok ? '#28a745' : '#d9534f';
+
+          msg.textContent = ok
+            ? `PASS – ${diagIn.toFixed(1)}″`
+            : `FAIL – ${diagIn.toFixed(1)}″`;
+          msg.style.color = clr;
+
+          contBtn.textContent = ok ? 'Continue' : 'Quit';
+          contBtn.style.background = clr;
+          contBtn.disabled = false;
+          contBtn.style.opacity = '1';
+
+          if (!ok) contBtn.onclick = () => showDisqualifyPage();
+
+          slide.disabled = true;
+          check.disabled = true;
+          check.style.opacity = '.5';
+        };
+      },
+
+      /* ------------------------------------------------------------------------ */
+      /* ---------------- on-finish handler ---------------- */
+      on_finish: data => {
+        // always stop blocking zoom shortcuts
+        removeZoomBlocker();
+
+        /* --------------------------------------------------
+         * 0  = participant clicked the first button
+         *      (“Re-check”, by construction in choices[])
+         * -------------------------------------------------- */
+        if (data.response === 0) {
+          recheckAttempts++;          // count this attempt
+
+          /* after the 2nd Re-check → treat as an outright fail
+             (same outcome as pressing “Quit”) */
+          if (recheckAttempts >= 2) {
+            showDisqualifyPage();     // send them to the fail page
+            return;                   // skip storing more data
+          }
+        }
+
+        /* store which button they clicked (for your own logs) */
+        data.clicked = data.response;
+      }
+    };
+
+    /* ──────────────────────────────────────────────────────────────────────────────
+     *  LOOP ALLOWING UP TO TWO “RE-CHECK” ATTEMPTS
+     * ──────────────────────────────────────────────────────────────────────────── */
+    const verificationLoop = {
+      timeline: [verificationPage],
+      loop_function: data => {
+        const last = data.values().at(-1);
+        return last.clicked === 0 && recheckAttempts < 2;   // 0 = “Re-check”
+      }
+    };
+  </script>
+
+  <!-- ================== 3) Browser-Zoom Verification ================= -->
+  <script>
+    function zoomPct() { const dpr = window.devicePixelRatio || 1; return (dpr / 1.25) * 100; }
+
+    var zoomCheckTrial = {
+      type: jsPsychHtmlButtonResponse,
+      stimulus: function () {
+        const pct = zoomPct(), ok = pct >= 95 && pct <= 105;
+        return `
+          <h2 style="text-align:center;margin-top:10px;">Browser&nbsp;Zoom&nbsp;Check</h2>
+          <p style="text-align:center;font-size:22px;margin:20px 0;">
+             Current&nbsp;zoom&nbsp;:&nbsp;<b>${pct.toFixed(1)}&nbsp;%</b>
+             ${ok ? '<span style="color:#28a745;font-weight:bold;">PASS</span>' :
+            '<span style="color:#dc3545;font-weight:bold;">FAIL</span>'}
+          </p>
+          <p style="max-width:800px;margin:0 auto;font-size:15px;text-align:left;">
+             The experiment must run at <b>exactly 100&nbsp;% browser&nbsp;zoom</b>.
+             ${ok ? 'Great—no change needed.' :
+            'Press <kbd>Ctrl + 0</kbd> (Windows) or <kbd>⌘ 0</kbd> (Mac) or use the browser menu to reset the zoom, then click Re-check.'}
+          </p>`;
+      },
+      choices: ['Re-check', 'Continue'],
+      on_load: function () {
+        const pct = zoomPct(), ok = pct >= 95 && pct <= 105, btns = document.querySelectorAll('.jspsych-btn');
+        if (ok) {
+          btns[0].style.display = 'none'; btns[1].style.display = 'none';
+          setTimeout(() => jsPsych.finishTrial({ zoom: pct }), 400);
+        }
+        else { btns[1].disabled = true; btns[1].style.opacity = '.4'; }
+      },
+      on_finish: data => data.zoom = zoomPct()
+    };
+
+    var zoomCheckLoop = {
+      timeline: [zoomCheckTrial],
+      loop_function: function (data) {
+        const last = data.values().at(-1); return (last.zoom < 95 || last.zoom > 105) && last.response === 0;
+      }
+    };
+  </script>
+
+  <!-- ================= 3) Live ZOOM-/RES-GUARD (auto-resume, hard pause) ================ -->
+  <script>
+    /* create once */
+    let guardStarted = false;
+
+    function startZoomGuard() {
+      if (guardStarted) return;
+      guardStarted = true;
+
+      /* ── helper: are both zoom & resolution within limits? ── */
+      function ok() {
+        const dpr = window.devicePixelRatio || 1;
+
+        /* browser zoom   (≈100 % ±5 %) */
+        const zoomPct = (dpr / 1.25) * 100;
+        const zoomOK = zoomPct >= 95 && zoomPct <= 105;
+
+        /* NEW resolution limits */
+        const sw = Math.round(screen.width * dpr);
+        const sh = Math.round(screen.height * dpr);
+        const resOK = (sw >= 1880 && sw <= 1960) &&
+          (sh >= 1040 && sh <= 1120) &&
+          (dpr >= 1.20 && dpr <= 1.30);
+
+        return zoomOK && resOK;
+      }
+
+
+      /* ── overlay (no buttons) ── */
+      let overlay = null;
+      function show() {
+        if (overlay) return;
+        overlay = document.createElement('div');
+        overlay.id = 'zoom-overlay';   /* uses existing grey+centered CSS */
+        overlay.innerHTML = `
+        <div class="prompt-box">
+          <h3>Display settings changed</h3>
+          <p style="max-width:620px;margin:0 auto;line-height:1.55;">
+            • Browser zoom must stay at <b>100&nbsp;%</b>.<br>
+            The experiment is paused and will resume automatically once
+            everything is back within limits.
+          </p>
+        </div>`;
+        document.body.appendChild(overlay);
+      }
+      function hide() {
+        if (overlay) { document.body.removeChild(overlay); overlay = null; }
+      }
+
+      /* ── watcher ── */
+      let paused = false;
+      function watch() {
+        /* if user manually exited fullscreen, let the fullscreen-guard handle things */
+        if (!document.fullscreenElement) return;
+
+        if (!ok()) {
+          if (!paused) {
+            paused = true;
+            window.demoPaused = true;     /*  ←  makes pauseAwareTimeout freeze  */
+            jsPsych.pauseExperiment();    /*  ←  stops timeline  */
+            show();
+          }
+        } else if (paused) {
+          hide();
+          paused = false;
+          window.demoPaused = false;
+          jsPsych.resumeExperiment();
+        }
+      }
+
+      /* react to any size change and poll every 500 ms */
+      window.addEventListener('resize', watch);
+      window.addEventListener('orientationchange', watch);
+      setInterval(watch, 500);
+      watch();                 /* initial check */
+    }
+  </script>
+
+  <!-- ---------- tiny trial that starts guard right after loop -------- -->
+  <script>
+    const zoomGuardStarter = {
+      type: jsPsychCallFunction,
+      func: () => startZoomGuard()
+    };
+  </script>
+
 
   <script>
-    /*************** 2) Demo Instructions Page ***************/
+    /*************** 4) Demo Instructions Page ***************/
     var demoPage = {
       type: jsPsychHtmlButtonResponse,
       stimulus: `
@@ -445,10 +839,10 @@
         </div>
       `,
       choices: ['Start DEMO'],
-      on_load: function() {
+      on_load: function () {
         var btn = document.querySelector(".jspsych-btn");
         btn.disabled = true;
-        document.getElementById("demo-confirm").addEventListener("change", function() {
+        document.getElementById("demo-confirm").addEventListener("change", function () {
           btn.disabled = !this.checked;
         });
       }
@@ -456,72 +850,76 @@
   </script>
 
   <script>
-    /*************** 2.5) Demo Video Page ***************/
-var demoVideoTrial = {
-  type: jsPsychHtmlButtonResponse,
-  stimulus: `
+    /*************** 5) Demo Video Page ***************/
+    var demoVideoTrial = {
+      type: jsPsychHtmlButtonResponse,
+      stimulus: `
     <h2 style="text-align:center; margin-top:10px;">Instructional Video</h2>
     <div style="max-width:1200px; margin:0 auto; text-align:center;">
-      <video id="demo-video" controls style="width:100%; height:auto; margin-top:10px;">
+      <video id="demo-video"
+             class="no-progress"              
+             controls
+             controlsList="nodownload noremoteplayback"
+             style="width:100%; height:auto; margin-top:10px;">
         <source src="data/Demo Video.mp4" type="video/mp4">
         Your browser does not support the video tag.
       </video>
     </div>
     <p style="margin-top:20px; text-align:center;">
-      You can skip ahead or scrub through the video at any time.
+      Please watch the entire video before proceed.
     </p>
   `,
-  choices: ['Continue'],
-  on_load: function() {
-    const btn = document.querySelector('.jspsych-btn');
-    btn.disabled = false;    // immediate enable
+      choices: ['Continue'],
+      on_load: function () {
+        const btn = document.querySelector('.jspsych-btn');
+        btn.disabled = true;
 
-    const video = document.getElementById('demo-video');
-    let playStart = null;
-    demoVideoWatchTime = 0;  // reset accumulator
+        const video = document.getElementById('demo-video');
+        let playStart = null;
+        demoVideoWatchTime = 0;  // reset accumulator
 
-    // When video starts or resumes playing
-    video.addEventListener('play', () => {
-      // record when this play segment began
-      playStart = Date.now();
-    });
+        // When video starts or resumes playing
+        video.addEventListener('play', () => {
+          // record when this play segment began
+          playStart = Date.now();
+        });
 
-    // When video is paused or user seeks
-    function accumulate() {
-      if (playStart !== null) {
-        // add the elapsed seconds since playStart
-        demoVideoWatchTime += (Date.now() - playStart) / 1000;
-        playStart = null;
+        // When video is paused or user seeks
+        function accumulate() {
+          if (playStart !== null) {
+            // add the elapsed seconds since playStart
+            demoVideoWatchTime += (Date.now() - playStart) / 1000;
+            playStart = null;
+          }
+        }
+        video.addEventListener('pause', accumulate);
+        video.addEventListener('seeking', accumulate);
+
+        // When video ends naturally
+        video.addEventListener('ended', () => {
+          accumulate();         // add the last segment
+          // demoVideoWatchTime now holds total watched seconds
+          btn.disabled = false;
+          console.log('Total watched (s):', demoVideoWatchTime);
+        });
+
+        // Also catch the Continue click if they skip before ending
+        btn.addEventListener('click', () => {
+          accumulate();         // add any current segment
+          console.log('Final watched (s):', demoVideoWatchTime);
+        });
       }
-    }
-    video.addEventListener('pause', accumulate);
-    video.addEventListener('seeking', accumulate);
-
-    // When video ends naturally
-    video.addEventListener('ended', () => {
-      accumulate();         // add the last segment
-      // demoVideoWatchTime now holds total watched seconds
-      console.log('Total watched (s):', demoVideoWatchTime);
-    });
-
-    // Also catch the Continue click if they skip before ending
-    btn.addEventListener('click', () => {
-      accumulate();         // add any current segment
-      console.log('Final watched (s):', demoVideoWatchTime);
-    });
-  }
-};
-
+    };
   </script>
 
   <script>
-    /*************** 3) Dynamic Demo Trial ***************/
+    /*************** 6) Dynamic Demo Trial ***************/
     var dynamicDemoTrial = {
       type: jsPsychHtmlButtonResponse,
       stimulus: '<div id="dynamic-demo-container"></div>',
       choices: ['YES'],
       response_ends_trial: false,
-      on_load: function() {
+      on_load: function () {
         var btn = document.querySelector(".jspsych-btn");
         var yesBtnContainer = document.getElementById('yes-button-container');
         yesBtnContainer.appendChild(btn);
@@ -566,10 +964,13 @@ var demoVideoTrial = {
         }, 100);
 
         function loadImage(src) {
-          return new Promise(function (resolve, reject) {
-            var img = new Image();
-            img.onload = function () { resolve(img); };
-            img.onerror = function () { reject(src); };
+          const key = src;
+          if (imageCache[key]) return Promise.resolve(imageCache[key]);
+
+          return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => { imageCache[key] = img; resolve(img); };
+            img.onerror = () => reject(src);
             img.src = "image/" + encodeURIComponent(src);
           });
         }
@@ -659,12 +1060,12 @@ var demoVideoTrial = {
               </div>
             </div>
           `;
-          document.getElementById("yes-button-container").style.display = "block";  
-          btn.style.display = "inline-block";  
-          btn.disabled = false;  
-          btn.style.opacity = "1";  
+          document.getElementById("yes-button-container").style.display = "block";
+          btn.style.display = "inline-block";
+          btn.disabled = false;
+          btn.style.opacity = "1";
           // First update: 3000ms → 2000ms  
-          pauseAwareTimeout(nextImage, 2000);  
+          pauseAwareTimeout(nextImage, 2000);
         }
 
         /* -------------- MODIFIED CLICK HANDLER -------------- */
@@ -700,7 +1101,7 @@ var demoVideoTrial = {
   </script>
 
   <script>
-    /*************** 4) Demo Completion Page ***************/
+    /*************** 7) Demo Completion Page ***************/
     var demoCompleteTrial = {
       type: jsPsychHtmlButtonResponse,
       stimulus: `
@@ -717,15 +1118,15 @@ var demoVideoTrial = {
         </p>
       `,
       choices: ['Redo DEMO', 'START ACTUAL EXPERIMENT'],
-      on_finish: function() { /* Loop handled in timeline */ }
+      on_finish: function () { /* Loop handled in timeline */ }
     };
   </script>
 
   <script>
-    /*************** 5) Experiment Instructions Page ***************/
+    /*************** 8) Experiment Instructions Page ***************/
     var experimentInstructions = {
       type: jsPsychHtmlButtonResponse,
-      stimulus: function() {
+      stimulus: function () {
         window.selectedObject = getRandomElement(objectNames);
         window.selectedGroupKey = getRandomElement(Object.keys(groups));
         var props = groups[window.selectedGroupKey];
@@ -736,7 +1137,7 @@ var demoVideoTrial = {
             <p>The experiment will now run for a series of keys based on one randomly selected object and group.</p>
             <p>
               You have been assigned to <strong>${window.selectedGroupKey}</strong>.<br>
-              You will perform <strong>${setsCount * 4} sets</strong> (each property contributes 4 directions) of experiments.
+              You will perform <strong>${setsCount * 4 * SCALES.length} sets</strong> (each property contributes 4 directions) of experiments.
             </p>
             <p style="color:red; font-weight:bold;">
               WARNING: Refreshing the page will cause all progress to be lost.
@@ -758,304 +1159,380 @@ var demoVideoTrial = {
   </script>
 
   <script>
-    /*************** 6) Multi-Key Actual Experiment Trial with BATCHED PREFETCH ***************/
+    /*************** 9) Multi-Key Actual Experiment Trial with BATCHED PREFETCH ***************/
     var multiKeyExperimentTrial = {
       type: jsPsychHtmlButtonResponse,
       stimulus: '<div id="actual-exp-container"></div>',
       choices: ['YES'],
       response_ends_trial: false,
-      on_load: function () {
-        clearYesClickEvents();
-        var btn = document.querySelector(".jspsych-btn");
-        if (!btn) {
-          btn = document.createElement("button");
-          btn.className = "jspsych-btn";
-          btn.textContent = "YES";
-        }
-        var yesBtnContainer = document.getElementById('yes-button-container');
-        yesBtnContainer.appendChild(btn);
-        yesBtnContainer.style.display = "none";
-        btn.style.display = "none";
 
-        document.getElementById("progress-circle").style.display = "block";
-        var properties = groups[window.selectedGroupKey];
-        var totalSets = properties.length * 4;
+      on_load: function () {
+
+        /* ========== create / place the YES button ========== */
+        clearYesClickEvents();
+        let btn = document.querySelector('.jspsych-btn');
+        if (!btn) {
+          btn = document.createElement('button');
+          btn.className = 'jspsych-btn';
+          btn.textContent = 'YES';
+        }
+        const yesWrap = document.getElementById('yes-button-container');
+        yesWrap.appendChild(btn);
+        yesWrap.style.display = 'none';
+        btn.style.display = 'none';
+
+        /* ========== progress ring ========== */
+        const properties = groups[window.selectedGroupKey];     // e.g. ["Center_125%_Plain"]
+        const totalSets = properties.length * 4 * SCALES.length;
+        document.getElementById('progress-circle').style.display = 'block';
         window.completedSets = 0;
-        window.updateProgressCircle = function() {
-          var angle = ((totalSets - window.completedSets) / totalSets) * 360;
-          document.getElementById("progress-circle").style.background =
+        window.updateProgressCircle = () => {
+          const angle = ((totalSets - window.completedSets) / totalSets) * 360;
+          document.getElementById('progress-circle').style.background =
             `conic-gradient(#4CAF50 0deg, #4CAF50 ${angle}deg, #ccc ${angle}deg, #ccc 360deg)`;
         };
         window.updateProgressCircle();
 
-        console.log("Selected object:", window.selectedObject);
-        console.log("Selected group:", window.selectedGroupKey);
-        console.log("Properties:", properties);
-        var experimentResults = [];
+        const experimentResults = [];
 
-        function runExperimentForProperty(index) {
-          if (index >= properties.length) {
-            if (btn.parentNode) { btn.parentNode.removeChild(btn); }
-            var trialData = {
+        /* ──────────────────────────────────────────────
+           Helpers for the size-transition screen
+        ────────────────────────────────────────────── */
+        function hideYesBtn() { btn.style.display = 'none'; }
+
+        function showScaleTransition(scaleFactor, afterCb) {
+          const pct = Math.round(scaleFactor * 100);
+          const c = document.getElementById('actual-exp-container');
+          c.innerHTML = `
+        <div style="display:flex;flex-direction:column;align-items:center;
+                    justify-content:center;height:80vh;font-family:Arial,Helvetica,sans-serif;">
+          <h2 style="margin-bottom:16px;">Starting next set(different stimuli size)</h2>
+          <p style="font-size:20px;">This set has no link to prior set</b></p>
+        </div>`;
+          document.getElementById('yes-button-container').style.display = 'none';
+          pauseAwareTimeout(afterCb, 3000);          // wait 3 s, then continue
+        }
+
+        /* ──────────────────────────────────────────────
+           TOP-LEVEL loop over the three scale factors
+        ────────────────────────────────────────────── */
+        function runExperimentForScale(scaleIdx) {
+
+          /* --- finished all three sizes? --- */
+          if (scaleIdx >= SCALES.length) {
+            hideYesBtn();
+            jsPsych.finishTrial({
               object: window.selectedObject,
               group: window.selectedGroupKey,
-              experimentResults: experimentResults
-            };
-            jsPsych.finishTrial(trialData);
+              results: experimentResults,
+              ...window.stimSizesByScale
+            });
             return;
           }
-          var selectedProperty = properties[index];
-          var searchKey = window.selectedObject + "_" + selectedProperty;
-          console.log("Running experiment for key:", searchKey);
-          runDirectionalExperiment(searchKey, selectedProperty, function(phaseResults, filenames) {
-            experimentResults.push({
-              property: selectedProperty,
-              phaseResults: phaseResults,
-              filenames: filenames
-            });
-            runExperimentForProperty(index + 1);
-          });
-        }
-        runExperimentForProperty(0);
 
-        /* -------- DIRECTIONAL EXPERIMENT FUNCTION (BATCHED LOADING) -------- */
-        function runDirectionalExperiment(searchKey, propertyName, callback) {
-          var container = document.getElementById("actual-exp-container");
-          container.innerHTML = `
-            <div class="loading-container">
-              <p>Loading experiment, please wait...</p>
-              <div class="progress-bar-container">
-                <div id="exp-loading-bar" class="progress-bar"></div>
-              </div>
-            </div>
-          `;
-          document.getElementById("yes-button-container").style.display = "none";
-          var loadingBar = document.getElementById("exp-loading-bar");
-          var progress = 0;
-          var loadingInterval = setInterval(function () {
-            progress += 5;
-            if (progress >= 100) { clearInterval(loadingInterval); }
-            else { loadingBar.style.width = progress + "%"; }
-          }, 100);
+          /* run the body either immediately (first set) or after the 3-s screen */
+          const startBody = () => runScaleBody(SCALES[scaleIdx]);
+          (scaleIdx === 0) ? startBody() : showScaleTransition(SCALES[scaleIdx], startBody);
 
-          fetchImageFilenames(searchKey).then(function(fileNames) {
-            if (fileNames.length === 0) {
-              container.innerHTML = "<p>No matching images found for key: " + searchKey + ".</p>";
-              callback({}, []); return;
-            }
-            if (fileNames.length < 401) {
-              container.innerHTML = "<p>Expected ≥ 401 images for key: " + searchKey + ", but got " + fileNames.length + ".</p>";
-              callback({}, fileNames); return;
-            }
-            // Only take first 401
-            fileNames = fileNames.slice(0, 401);
+          /* ===============================================
+             Inner body: all properties for *one* scale
+          =============================================== */
+          function runScaleBody(currentScale) {
 
-            // Split into original + 4 directions
-            var originalFilename   = fileNames[0];
-            var leftFilenamesAll   = fileNames.slice(1, 101);
-            var rightFilenamesAll  = fileNames.slice(101, 201);
-            var upFilenamesAll     = fileNames.slice(201, 301);
-            var downFilenamesAll   = fileNames.slice(301, 401);
-
-            // Prepare per-phase filename arrays (including original at index 0)
-            const phases = [
-              { direction: "L", label: "LEFT",  filenames: [originalFilename].concat(leftFilenamesAll) },
-              { direction: "R", label: "RIGHT", filenames: [originalFilename].concat(rightFilenamesAll) },
-              { direction: "U", label: "UP",    filenames: [originalFilename].concat(upFilenamesAll) },
-              { direction: "D", label: "DOWN",  filenames: [originalFilename].concat(downFilenamesAll) }
-            ];
-
-            const baseImageURL = "https://lasvientuexperimentdata.s3.ap-southeast-1.amazonaws.com/Rendered+Images/";
-            const INITIAL_CACHE_SIZE  = 5;  // preload first 10 shifts + original
-            const PREFETCH_THRESHOLD  = 2;   // when within 5 of cache end, fetch more
-            const PREFETCH_SIZE       = 2;   // fetch 5 more each time
-
-            var currentPhaseIndex = 0;
-            var currentImageIndex = 0;
-            var phaseResults      = {};
-            var highestLoadedIndex = 0;  // track how many we've preloaded
-
-            // Utility to preload a set of indices for the current phase
-            function preloadImages(indices) {
-              var fnames = phases[currentPhaseIndex].filenames;
-              indices.forEach(function(i) {
-                var img = new Image();
-                img.src = baseImageURL + encodeURIComponent(fnames[i]);
-              });
-            }
-
-            btn.style.display = "none";
-            btn.disabled = true;
-            btn.style.opacity = "0.5";
-
-            // Handle YES clicks
-            var yesHandler = function () {
-              if (!btn.disabled) {
-                var phase = phases[currentPhaseIndex];
-                var filenameURL = document.getElementById("exp-shift-image").src;
-                var parsed = parseShiftFromFilename(filenameURL);
-                yesClickEvents.push({
-                  phase: "actual",
-                  group: window.selectedGroupKey,
-                  property: propertyName,
-                  direction: parsed.direction,
-                  shift: parsed.shift,
-                  filename: filenameURL
-                });
-                phaseResults[phase.label] = {
-                  imageIndex: currentImageIndex,
-                  filename: filenameURL,
-                  pixelShift: parsed.shift,
-                  direction: parsed.direction
-                };
-                window.completedSets++;
-                window.updateProgressCircle();
-                moveToNextPhase();
+            function runExperimentForProperty(propIdx) {
+              if (propIdx >= properties.length) {
+                /* done with this scale –> move to next one */
+                return runExperimentForScale(scaleIdx + 1);
               }
-            };
-            btn.addEventListener("click", yesHandler);
 
-            // Countdown before each phase
-            function startPhaseCountdown() {
-              btn.style.display = "none";
-              var phase = phases[currentPhaseIndex];
-              container.innerHTML = `
-                <div id="exp-header" style="text-align:center; margin-top:10px;">
-                  <h3 style="margin:0 0 10px 0;">
-                    Saliency object will be moving <span style="font-size:1.5em; text-decoration:underline;">${phase.label}</span>
-                  </h3>
-                  <h3 id="exp-countdown" style="font-size:72px; font-weight:bold; margin:100px;">3</h3>
-                </div>
-              `;
-              var count = 3;
-              function tick() {
-                if (demoPaused) { return setTimeout(tick, 100); }
-                count--;
-                document.getElementById("exp-countdown").innerHTML = count;
-                if (count <= 0) {
-                  startPhase();
-                } else {
-                  setTimeout(tick, 1000);
-                }
-              }
-              setTimeout(tick, 1000);
-            }
+              const property = properties[propIdx];
+              const searchKey = `${window.selectedObject}_${property}`;
 
-            // Start showing a phase (with initial preload)
-            function startPhase() {
-              currentImageIndex = 0;
-              var phase = phases[currentPhaseIndex];
-              // preload original + initial chunk
-              highestLoadedIndex = Math.min(INITIAL_CACHE_SIZE, phase.filenames.length - 1);
-              var toPreload = [];
-              for (var i = 0; i <= highestLoadedIndex; i++) toPreload.push(i);
-              preloadImages(toPreload);
+              runDirectionalExperiment(
+                searchKey,
+                property,
+                currentScale,
+                (phaseResults, filenames) => {
 
-              document.getElementById("yes-button-container").style.display = "block";
-              btn.style.display = "inline-block";
-              btn.disabled = false;
-              btn.style.opacity = "1";
-              showPhaseImages();
-            }
-
-            // Render current image, then schedule next
-            function showPhaseImages() {
-              var phase = phases[currentPhaseIndex];
-              var fn = phase.filenames[currentImageIndex];
-              container.innerHTML = `
-                <div id="exp-header" style="text-align:center; margin-top:10px;">
-                  <h3 style="margin:0 0 10px 0;">
-                    Saliency object will be moving <span style="font-size:1.5em; text-decoration:underline;">${phase.label}</span>
-                  </h3>
-                </div>
-                <div id="exp-content" style="display:flex; justify-content:center; align-items:center;">
-                  <div style="margin:5px; text-align:center;">
-                    <img id="exp-ref-image"
-                         src="${baseImageURL + encodeURIComponent(phase.filenames[0])}"
-                         class="demo-image">
-                    <br><span>Reference Image</span>
-                  </div>
-                  <div style="margin:5px; text-align:center;">
-                    <img id="exp-shift-image"
-                         src="${baseImageURL + encodeURIComponent(fn)}"
-                         class="demo-image"
-                         style="visibility:visible;">
-                    <br><span>Shifted Image</span>
-                  </div>
-                </div>
-              `;
-              btn.disabled = false;
-              btn.style.opacity = "1";
-              pauseAwareTimeout(advancePhaseImage, 2000);
-            }
-
-            // Advance within phase, prefetching more as needed, with 1s hide and 2s display
-            function advancePhaseImage() {
-              btn.disabled = true;
-              btn.style.opacity = "0.5";
-              var phase = phases[currentPhaseIndex];
-
-              if (currentImageIndex < phase.filenames.length - 1) {
-                // hide shifted image for 1 second
-                var shiftImg = document.getElementById("exp-shift-image");
-                shiftImg.style.visibility = "hidden";
-
-                // after 1s, load and show next
-                pauseAwareTimeout(function () {
-                  currentImageIndex++;
-
-                  // prefetch if within threshold
-                  if (currentImageIndex + PREFETCH_THRESHOLD > highestLoadedIndex &&
-                      highestLoadedIndex < phase.filenames.length - 1) {
-                    var start = highestLoadedIndex + 1;
-                    var end   = Math.min(highestLoadedIndex + PREFETCH_SIZE, phase.filenames.length - 1);
-                    var more  = [];
-                    for (var j = start; j <= end; j++) more.push(j);
-                    preloadImages(more);
-                    highestLoadedIndex = end;
+                  /* one-time stimulus-size capture for this scale */
+                  const sizeKeyW = `stim_${currentScale}_width`;
+                  if (!window.stimSizesByScale[sizeKeyW]) {
+                    const firstURL = 'https://lasvientuexperimentdata.s3.ap-southeast-1.amazonaws.com/Rendered+Images/' +
+                      encodeURIComponent(filenames[0][0]);
+                    loadImage(firstURL).then(img => {
+                      window.stimSizesByScale[sizeKeyW] =
+                        Math.round(img.naturalWidth * currentScale);
+                      window.stimSizesByScale[`stim_${currentScale}_height`] =
+                        Math.round(img.naturalHeight * currentScale);
+                    });
                   }
 
-                  var fn = phase.filenames[currentImageIndex];
-                  shiftImg.src = baseImageURL + encodeURIComponent(fn);
-                  shiftImg.style.visibility = "visible";
-                  btn.disabled = false;
-                  btn.style.opacity = "1";
+                  /* record the full result of this (property × scale) run */
+                  experimentResults.push({
+                    scale: currentScale,
+                    property: `${property}_${currentScale}`,
+                    phaseResults,
+                    filenames
+                  });
 
-                  // display for 2 seconds
-                  pauseAwareTimeout(advancePhaseImage, 2000);
-                }, 1000);
-
-              } else {
-                moveToNextPhase();
-              }
+                  runExperimentForProperty(propIdx + 1);   // next property
+                }
+              ); /* runDirectionalExperiment */
             }
 
-            function moveToNextPhase() {
-              btn.disabled = true;
-              btn.style.opacity = "0.5";
-              currentPhaseIndex++;
-              if (currentPhaseIndex < phases.length) {
-                startPhaseCountdown();
-              } else {
-                btn.removeEventListener("click", yesHandler);
-                callback(phaseResults, phases.map(p => p.filenames));
-              }
-            }
+            /* kick off first property */
+            runExperimentForProperty(0);
+          } /* runScaleBody */
+        } /* runExperimentForScale */
 
-            // Kick off the very first phase
-            startPhaseCountdown();
-
-          }).catch(function (error) {
-            container.innerHTML = "<p>Error fetching image filenames: " + error + "</p>";
-          });
-        }
-        /* ------------------------------------------------------ */
-      }
+        /* ─── START the whole experiment ─── */
+        runExperimentForScale(0);
+      } /* on_load */
     };
+
+    /******************************************************************
+     * 3) Directional experiment (one property, four directions)
+     *    – unchanged logic, but now receives `scaleFactor`
+     *****************************************************************/
+    function runDirectionalExperiment(searchKey, propertyName, scaleFactor, callback) {
+      const btn = document.querySelector('#yes-button-container .jspsych-btn')
+        || document.querySelector('.jspsych-btn');
+      const container = document.getElementById('actual-exp-container');
+
+      /* --- loading screen --- */
+      container.innerHTML = `
+        <div class="loading-container">
+          <p>Loading experiment, please wait...</p>
+          <div class="progress-bar-container">
+            <div id="exp-loading-bar" class="progress-bar"></div>
+          </div>
+        </div>`;
+      document.getElementById('yes-button-container').style.display = 'none';
+      let progress = 0;
+      const loadingBar = document.getElementById('exp-loading-bar');
+      const loadingInt = setInterval(() => {
+        progress += 5;
+        loadingBar.style.width = progress + '%';
+        if (progress >= 100) clearInterval(loadingInt);
+      }, 100);
+
+      /* --- get file list --- */
+      fetchImageFilenames(searchKey).then(fileNames => {
+        if (fileNames.length < 401) {
+          container.innerHTML = `<p>Need ≥ 401 images for “${searchKey}” but got ${fileNames.length}.</p>`;
+          return callback({}, fileNames);
+        }
+        fileNames = fileNames.slice(0, 401);
+
+        /* split into original + 4 dirs */
+        const original = fileNames[0];
+        const left = fileNames.slice(1, 101);
+        const right = fileNames.slice(101, 201);
+        const up = fileNames.slice(201, 301);
+        const down = fileNames.slice(301, 401);
+
+        const phases = [
+          { label: 'LEFT', dir: 'L', filenames: [original, ...left] },
+          { label: 'RIGHT', dir: 'R', filenames: [original, ...right] },
+          { label: 'UP', dir: 'U', filenames: [original, ...up] },
+          { label: 'DOWN', dir: 'D', filenames: [original, ...down] }
+        ];
+
+        const baseURL = 'https://lasvientuexperimentdata.s3.ap-southeast-1.amazonaws.com/Rendered+Images/';
+        const INITIAL_CACHE = 5;
+        const PREFETCH_BORDER = 2;
+        const PREFETCH_CHUNK = 2;
+
+        let phaseIdx = 0;
+        let imgIdx = 0;
+        let highestCached = 0;
+        const phaseResults = {};
+
+        /* utility: cache a list of indices for the current phase */
+        const cacheIndices = idxArr => {
+          const f = phases[phaseIdx].filenames;
+          idxArr.forEach(i => loadImage(baseURL + encodeURIComponent(f[i])));
+        };
+
+        /* YES handler */
+        const yesHandler = () => {
+          if (btn.disabled) return;
+
+          const phase = phases[phaseIdx];
+          const imgEl = document.getElementById('exp-shift-image');
+          const imgURL = imgEl.src;
+          const parsed = parseShiftFromFilename(imgURL);
+
+          /* --------------- NEW --------------- */
+          const propScaled = `${propertyName}_${scaleFactor}`;  // e.g. Center_125%_Plain_0.75
+          /* ----------------------------------- */
+
+          yesClickEvents.push({
+            phase: 'actual',
+            group: window.selectedGroupKey,
+
+            /* combined property */
+            property: propScaled,
+
+            direction: parsed.direction,
+            shift: parsed.shift,
+            filename: imgURL,
+          });
+
+          phaseResults[phase.label] = {
+            imageIndex: imgIdx,
+            filename: imgURL,
+            pixelShift: parsed.shift,
+            direction: parsed.direction,
+
+            /* same fields for per-phase summary */
+            property: propScaled,
+          };
+
+          window.completedSets++;
+          window.updateProgressCircle();
+          nextPhase();
+        };
+
+        btn.addEventListener('click', yesHandler);
+
+        /* ----- phase helper functions ----- */
+        const startPhaseCountdown = () => {
+          btn.style.display = 'none';
+          const phase = phases[phaseIdx];
+          container.innerHTML = `
+            <div id="exp-header" style="text-align:center; margin-top:10px;">
+              <h3>Saliency object will move
+                <span style="font-size:1.5em; text-decoration:underline;">${phase.label}</span>
+              </h3>
+              <h3 id="exp-countdown" style="font-size:72px; font-weight:bold; margin:100px;">3</h3>
+            </div>`;
+          let c = 3;
+          const tick = () => {
+            if (demoPaused) return setTimeout(tick, 100);
+            document.getElementById('exp-countdown').textContent = --c;
+            c ? setTimeout(tick, 1000) : startPhase();
+          };
+          setTimeout(tick, 1000);
+        };
+
+        const startPhase = () => {
+          imgIdx = 0;
+          highestCached = Math.min(INITIAL_CACHE, phases[phaseIdx].filenames.length - 1);
+          cacheIndices([...Array(highestCached + 1).keys()]);   // pre-cache first 6
+
+          document.getElementById('yes-button-container').style.display = 'block';
+          btn.style.display = 'inline-block';
+          btn.disabled = false;
+          btn.style.opacity = '1';
+          showFrame();
+        };
+
+        /* ----------  SHOW ONE FRAME  ---------- */
+        const showFrame = () => {
+          const phase = phases[phaseIdx];
+          const fname = phase.filenames[imgIdx];
+
+          /* ── build HTML ───────────────────────────────────── */
+          container.innerHTML = `
+    <div id="exp-header" style="text-align:center;margin-top:10px;">
+      <h3>Saliency object will move
+        <span style="font-size:1.5em;text-decoration:underline;">${phase.label}</span>
+      </h3>
+    </div>
+
+    <div id="exp-content"
+         style="display:flex;justify-content:center;align-items:center;">
+      <div style="margin:5px;text-align:center;">
+        <img id="exp-ref-image"
+             src="${baseURL + encodeURIComponent(phase.filenames[0])}"
+             class="demo-image"
+             style="transform:scale(${scaleFactor});transform-origin:center;">
+        <br><span>Reference Image</span>
+      </div>
+      <div style="margin:5px;text-align:center;">
+        <img id="exp-shift-image"
+             src="${baseURL + encodeURIComponent(fname)}"
+             class="demo-image"
+             style="visibility:visible;transform:scale(${scaleFactor});transform-origin:center;">
+        <br><span>Shifted Image</span>
+      </div>
+    </div>`;
+
+          /* ── 1st time for this scale?  Store displayed size (CSS px) ── */
+          const wKey = `stim_${scaleFactor}_width`;
+          if (!window.stimSizesByScale[wKey]) {
+            /* getBoundingClientRect() INCLUDES transforms → true displayed size */
+            const rect = document
+              .getElementById('exp-ref-image')
+              .getBoundingClientRect();
+            window.stimSizesByScale[wKey] = Math.round(rect.width);
+            window.stimSizesByScale[`stim_${scaleFactor}_height`] = Math.round(rect.height);
+          }
+
+          /* ── enable button & schedule next frame ── */
+          btn.disabled = false;
+          btn.style.opacity = '1';
+          pauseAwareTimeout(advanceFrame, 2000);
+        };
+
+        const advanceFrame = () => {
+          const shiftImg = document.getElementById('exp-shift-image');
+          if (!shiftImg || phaseIdx >= phases.length) return;
+          btn.disabled = true;
+          btn.style.opacity = '0.5';
+          const phase = phases[phaseIdx];
+
+          if (imgIdx < phase.filenames.length - 1) {
+            const shiftImg = document.getElementById('exp-shift-image');
+            shiftImg.style.visibility = 'hidden';
+
+            pauseAwareTimeout(() => {
+              imgIdx++;
+
+              /* prefetch just-in-time */
+              if (imgIdx + PREFETCH_BORDER > highestCached &&
+                highestCached < phase.filenames.length - 1) {
+                const start = highestCached + 1;
+                const end = Math.min(highestCached + PREFETCH_CHUNK, phase.filenames.length - 1);
+                cacheIndices(Array.from({ length: end - start + 1 }, (_, k) => k + start));
+                highestCached = end;
+              }
+
+              shiftImg.src = baseURL + encodeURIComponent(phase.filenames[imgIdx]);
+              shiftImg.style.visibility = 'visible';
+              btn.disabled = false;
+              btn.style.opacity = '1';
+              pauseAwareTimeout(advanceFrame, 2000);
+            }, 1000);
+          } else {
+            nextPhase();
+          }
+        };
+
+        const nextPhase = () => {
+          btn.disabled = true;
+          btn.style.opacity = '0.5';
+          phaseIdx++;
+          if (phaseIdx < phases.length) startPhaseCountdown();
+          else {
+            btn.removeEventListener('click', yesHandler);
+            callback(phaseResults, phases.map(p => p.filenames));
+          }
+        };
+
+        /* kick off the countdown for first phase */
+        startPhaseCountdown();
+      })
+        .catch(err => {
+          container.innerHTML = `<p>Error fetching filenames: ${err}</p>`;
+        });
+    } /* runDirectionalExperiment */
+   /* on_load */;
   </script>
 
   <script>
-    /*************** 7) Final "Submit Data" Page ***************/
+    /*************** 10) Final "Submit Data" Page ***************/
     var finalSubmissionTrial = {
       type: jsPsychHtmlButtonResponse,
       stimulus: `
@@ -1066,9 +1543,9 @@ var demoVideoTrial = {
         </div>
       `,
       choices: ['Submit Data'],
-      on_finish: function() {
+      on_finish: function () {
         var jsPsychDataArray = jsPsych.data.get().values();
-        var trialSummary = jsPsychDataArray.map(function(trial) {
+        var trialSummary = jsPsychDataArray.map(function (trial) {
           return {
             trialIndex: trial.trial_index,
             trialType: trial.trial_type,
@@ -1086,7 +1563,8 @@ var demoVideoTrial = {
           yesClicks: yesClickEvents,
           trialSummary: trialSummary,
           demoVideoWatchTime: demoVideoWatchTime,
-          demoPixelShift: window.demoPixelShift ?? null      // ← NEW FIELD
+          demoPixelShift: window.demoPixelShift ?? null,    // ← NEW FIELD
+          ...stimSizesByScale
         };
         /* ---------------------------------------------------- */
 
@@ -1096,19 +1574,19 @@ var demoVideoTrial = {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(finalPayload)
         })
-        .then(response => response.json())
-        .then(result => {
-          console.log("Data posted successfully:", result);
-        })
-        .catch(error => {
-          console.error("Error posting data:", error);
-        });
+          .then(response => response.json())
+          .then(result => {
+            console.log("Data posted successfully:", result);
+          })
+          .catch(error => {
+            console.error("Error posting data:", error);
+          });
       }
     };
   </script>
 
   <script>
-    /*************** 8) Final Survey Code Page ****************/
+    /*************** 11) Final Survey Code Page ****************/
     var finalCodeTrial = {
       type: jsPsychHtmlButtonResponse,
       stimulus: function () {
@@ -1140,7 +1618,11 @@ var demoVideoTrial = {
      * ASSEMBLE TIMELINE
      *********************************************************/
     var timeline = [];
-    timeline.push(welcomePage);
+    timeline.push(welcomePage);          /* 1  ─ Welcome              */
+    timeline.push(verificationLoop);     /* 2  ─ Display verification */
+
+    timeline.push(zoomCheckLoop);        /* 3  ─ Browser-zoom check   */
+    timeline.push(zoomGuardStarter);     /* 4  ─ Live zoom / res guard */
 
     // DEMO Timeline with new video watch time tracking
     var demoTimeline = {
@@ -1150,7 +1632,7 @@ var demoVideoTrial = {
         dynamicDemoTrial,
         demoCompleteTrial
       ],
-      loop_function: function(data) {
+      loop_function: function (data) {
         var last_trial = data.values()[data.values().length - 1];
         // If last trial button was 'Redo DEMO' (response == 0), repeat
         return last_trial.response === 0;
@@ -1166,4 +1648,5 @@ var demoVideoTrial = {
     jsPsych.run(timeline);
   </script>
 </body>
+
 </html>
