@@ -600,15 +600,20 @@
         contBtn.style.opacity = '.4';
 
         check.onclick = () => {
-          const mmPerPx = 85.6 / slide.value,
-            diagIn = Math.hypot(screen.width, screen.height) *
-              (mmPerPx / 25.4),
-            ok = (diagIn >= 15.3 && diagIn <= 15.9),
-            clr = ok ? '#28a745' : '#d9534f';
+          const card = document.getElementById('card-block');
 
-          msg.textContent = ok
-            ? `PASS – ${diagIn.toFixed(1)}″`
-            : `FAIL – ${diagIn.toFixed(1)}″`;
+          // Use the rendered content width (excludes borders). This matches what the user aligns.
+          const cardPx = card.clientWidth;                   // CSS px
+          const mmPerCssPx = 85.6 / cardPx;                 // 85.60 mm is ID-1 width
+
+          // Use the fullscreen viewport in CSS px (more robust than screen.*).
+          const cssDiagPx = Math.hypot(window.innerWidth, window.innerHeight);
+
+          const diagIn = (cssDiagPx * mmPerCssPx) / 25.4;   // inches
+          const ok = (diagIn >= 15.3 && diagIn <= 15.9);
+          const clr = ok ? '#28a745' : '#d9534f';
+
+          msg.textContent = (ok ? 'PASS – ' : 'FAIL – ') + diagIn.toFixed(1) + '″';
           msg.style.color = clr;
 
           contBtn.textContent = ok ? 'Continue' : 'Quit';
