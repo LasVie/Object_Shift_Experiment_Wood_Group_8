@@ -13,7 +13,6 @@
   <link href="jspsych/dist/jspsych.css" rel="stylesheet" type="text/css" />
 
   <style>
-    /* =================  ORIGINAL CSS  ================= */
     p {
       text-align: justify;
     }
@@ -158,8 +157,6 @@
       visibility: hidden !important;
     }
 
-
-    /* ---- ZOOM-VIOLATION OVERLAY ---- */
     #zoom-overlay {
       position: fixed;
       inset: 0;
@@ -190,6 +187,37 @@
 
     #zoom-overlay button:hover {
       opacity: .9;
+    }
+
+    #demo-content.fullbleed,
+    #exp-content.fullbleed {
+      width: 100vw !important;
+      margin-left: calc(50% - 50vw) !important;
+      margin-right: calc(50% - 50vw) !important;
+    }
+
+    #demo-content.fullbleed>div,
+    #exp-content.fullbleed>div {
+      margin: 0 !important;
+    }
+
+    .caption {
+      display: block;
+      text-align: center;
+      font-size: 14px;
+      margin-top: -8px;
+      position: relative;
+      top: -5px;
+    }
+  </style>
+
+  <style>
+    #exp-content>div {
+      margin: 0 !important;
+    }
+
+    #exp-content .demo-image {
+      max-width: none;
     }
   </style>
 
@@ -240,21 +268,28 @@
 
   <!-- ---------- Stimulus lists & filename-cache ---------- -->
   <script>
-    const SCALES = [1];   // 100 %, 75 %, 60 %
-    let scaleIndex = 0;                // current round
-    const imageCache = {};               // filename → Image() (saved in memory)
+    const SCALES = [0.9, 0.75, 0.6];
+    let scaleIndex = 0;
+    const imageCache = {};
     window.stimSizesByScale = {};
+    window.baseInterImageGapPx = null;
 
     var objectNames = [
-      //"Book Shelves", "Chess", "Wheel", "Food Platter", "Fruits", "Humming Bird","Plant", "Swing", "Vase", 
-      "Wood"
+      //"Book Shelves", "Chess", "Wheel","Food Platter", "Fruits", "Humming Bird","Plant","Swing", "Vase", 
+      "Wood",//"BronzeCat","Remote",
     ];
     var groups = {
-      //"Group1": ["Center_100%_Plain", "Center_100%_LowContrast"],
-      //"Group2": ["Left_100%_Plain", "Right_100%_Plain"],
-      //"Group3": ["Up_100%_Plain", "Down_100%_Plain"],
-      //"Group4": ["Center_125%_Plain", "Center_75%_Plain"],
-      "Group5": ["Center_100%_PatternHoriz", "Center_100%_PatternVert", "Center_100%_Messy"]
+      // "Group1": ["Center_100%_Plain"],
+      // "Group2": ["Center_100%_LowContrast"],
+      // "Group3": ["Left_100%_Plain"],
+      // "Group4": ["Right_100%_Plain"],
+      "Group5": ["Up_100%_Plain"],
+      // "Group6": ["Down_100%_Plain"],
+      // "Group7": ["Center_125%_Plain"],
+      // "Group8": ["Center_75%_Plain"],
+      // "Group9": ["Center_100%_PatternHoriz"],
+      // "Group10": ["Center_100%_PatternVert"],
+      // "Group11": ["Center_100%_Messy"],
     };
     function getRandomElement(a) { return a[Math.floor(Math.random() * a.length)]; }
 
@@ -273,7 +308,7 @@
   </script>
 
   <!-- ====================================================================
-     HELPER — cached image loader  (place once, high in the file)
+     HELPER Fuctions
 ==================================================================== -->
   <script>
     /* returns a Promise that resolves with an Image(), using the cache */
@@ -285,6 +320,130 @@
         img.onload = () => { imageCache[url] = img; resolve(img); };
         img.onerror = () => reject(url);
         img.src = url;
+      });
+    }
+
+    function edgeLayout(leftId, rightId, containerId, scale, opts = {}) {
+      const { mode = 'edges', gapPx = null } = opts;
+
+      const wrap = document.getElementById(containerId);
+      const leftEl = document.getElementById(leftId);
+      const rightEl = document.getElementById(rightId);
+      if (!wrap || !leftEl || !rightEl) return;
+
+      // Base container
+      wrap.style.display = 'flex';
+      wrap.style.alignItems = 'center';
+      wrap.style.width = '100%';
+      wrap.style.margin = '0';
+      wrap.style.padding = '0';
+      wrap.style.gap = '0px';
+      wrap.style.justifyContent = (mode === 'edges') ? 'space-between' : 'center';
+
+      // Normalize the two wrappers so flex centering works perfectly
+      [leftEl.parentElement, rightEl.parentElement].forEach(w => {
+        if (!w) return;
+        w.style.margin = '0';
+        w.style.textAlign = 'center';
+        w.style.flex = '0 0 auto';
+        w.style.minWidth = '0';
+      });
+
+      // Scale images
+      leftEl.style.transform = `scale(${scale})`;
+      rightEl.style.transform = `scale(${scale})`;
+
+      // Transform origin:
+      //  - edges mode: hug the outer edges
+      //  - gap   mode: scale around the center to keep the canvases visually aligned
+      leftEl.style.transformOrigin = (mode === 'edges') ? 'left center' : 'center center';
+      rightEl.style.transformOrigin = (mode === 'edges') ? 'right center' : 'center center';
+
+      // Force a layout pass so measurements include transforms
+      leftEl.getBoundingClientRect();
+
+      // For 0.75 / 0.6 runs: use the exact gap measured at 0.9, clamped to what fits
+      if (mode === 'gap' && typeof gapPx === 'number') {
+        const contW = wrap.clientWidth;
+        const lW = Math.round(leftEl.getBoundingClientRect().width);
+        const rW = Math.round(rightEl.getBoundingClientRect().width);
+        const maxGap = Math.max(0, contW - lW - rW);
+        const useGap = Math.min(Math.max(0, Math.round(gapPx)), maxGap);
+
+        wrap.style.gap = useGap + 'px';
+      }
+    }
+
+    function measureBaseGapWhenReady() {
+      if (typeof window.baseInterImageGapPx === 'number') return;
+
+      const left = document.getElementById('exp-ref-image');
+      const right = document.getElementById('exp-shift-image');
+      if (!left || !right) return;
+
+      let pending = 0, need = [];
+      if (!left.complete) { pending++; need.push(left); }
+      if (!right.complete) { pending++; need.push(right); }
+
+      const finish = () => {
+        requestAnimationFrame(() => {
+          const l = left.getBoundingClientRect();
+          const r = right.getBoundingClientRect();
+          const gap = r.left - l.right;
+          if (gap >= 0) window.baseInterImageGapPx = gap;
+        });
+      };
+
+      if (pending === 0) finish();
+      else {
+        const onload = () => { if (--pending === 0) finish(); };
+        need.forEach(img => img.addEventListener('load', onload, { once: true }));
+      }
+    }
+
+    function whenBaseGapKnown(cb) {
+      if (typeof window.baseInterImageGapPx === 'number') return cb(window.baseInterImageGapPx);
+      let tries = 0;
+      (function poll() {
+        if (typeof window.baseInterImageGapPx === 'number') cb(window.baseInterImageGapPx);
+        else if (++tries < 20) requestAnimationFrame(poll);
+      })();
+    }
+
+    function nudgeSpacerToTarget(containerId, targetGap) {
+      requestAnimationFrame(() => {
+        const left = document.getElementById('exp-ref-image');
+        const right = document.getElementById('exp-shift-image');
+        const spacer = document.getElementById(containerId + '-spacer');
+        if (!left || !right || !spacer) return;
+
+        const cur = right.getBoundingClientRect().left - left.getBoundingClientRect().right;
+        const delta = targetGap - cur; // positive -> widen spacer
+        if (Math.abs(delta) >= 1) {
+          const curW = parseFloat(spacer.style.width) || 0;
+          spacer.style.width = (curW + delta) + 'px';
+        }
+      });
+    }
+
+    /* For 0.75 only: after laying out with a requested gap,
+       measure the *visible* gap (post-transform) and nudge the
+       container's gap so it matches the 0.9 target exactly. */
+    function nudgeGapToTarget(containerId, targetGap) {
+      requestAnimationFrame(() => {
+        const wrap = document.getElementById(containerId);
+        const left = document.getElementById('exp-ref-image');
+        const right = document.getElementById('exp-shift-image');
+        if (!wrap || !left || !right) return;
+
+        const cur = right.getBoundingClientRect().left - left.getBoundingClientRect().right;
+        const delta = Math.round(targetGap - cur);       // +ve => need bigger gap
+        if (delta !== 0) {
+          const cs = getComputedStyle(wrap);
+          const currentGap =
+            parseFloat(cs.columnGap || cs.gap || wrap.style.gap || 0) || 0;
+          wrap.style.gap = Math.max(0, currentGap + delta) + 'px';
+        }
       });
     }
   </script>
@@ -327,7 +486,6 @@
       `,
       choices: ['Continue'],
 
-      /* ---------- SAFER HANDLER ---------- */
       on_load: function () {
         const btn = document.querySelector(".jspsych-btn");
         const idInput = document.getElementById("worker-id-input");
@@ -366,13 +524,13 @@
       /* make sure the constant exists somewhere global */
       const AWS_ENDPOINT = "https://i7nc0ict3h.execute-api.ap-southeast-1.amazonaws.com/storedata";
 
-      /* build payload exactly as Lambda expects */
+      /* build payload as Lambda expects */
       fetch(AWS_ENDPOINT, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           participantID: window.participantID || Date.now().toString(),
-          demoVideoWatchTime: 0              // REQUIRED: always 0 for fails
+          demoVideoWatchTime: 0  // REQUIRED: always 0 for fails
         })
       }).catch(err => console.error("DQ upload error:", err));
 
@@ -401,13 +559,13 @@
 
       /* close the tab / window when the user clicks Close */
       document.getElementById("dq-close").onclick = () => {
-        window.open('', '_self');   // mark tab as “script-opened”
+        window.open('', '_self');
         window.close();
       };
     }
   </script>
 
-  <!-- ================= 2) DISPLAY-VERIFICATION PAGE  (FULL CODE) ================= -->
+  <!-- ================= 2) DISPLAY-VERIFICATION PAGE  ================= -->
   <script>
     /* ──────────────────────────────────────────────────────────────────────────────
      *  GLOBAL HELPERS
@@ -451,7 +609,6 @@
       /* jsPsych 7 calls this as a function; older versions accept it too           */
       /* i  = index (0,1,2)   label = '%choice%' placeholder                         */
       button_html: function (choice, index) {
-        // red background only for the second button (“Quit”)
         const style = (index === 1)
           ? 'style="background:#d9534f;color:#fff;"'
           : '';
@@ -466,50 +623,97 @@
           shCSS = screen.height,
           vw = innerWidth,
           vh = innerHeight,
-          swPhy = Math.round(swCSS * dpr),   // physical pixels
+          swPhy = Math.round(swCSS * dpr),
           shPhy = Math.round(shCSS * dpr);
 
-        // 👇 NEW tolerance band for a 1920 × 1080 panel
-        const ok1080 = (swPhy >= 1880 && swPhy <= 1960) &&   // allow ±40 px
+        // 👇 NEW tolerance band for a 1920 × 1080 panel
+        const ok1080 = (swPhy >= 1880 && swPhy <= 1960) &&   // allow ±40 px
           (shPhy >= 1040 && shPhy <= 1120);
 
-        // keep the old DPR test exactly as‑is
         const okDPR = (dpr >= 1.20 && dpr <= 1.30);
-
         const winOK = Math.abs(((swCSS * dpr) / innerWidth) - dpr) < 0.02;
         const passAll = ok1080 && okDPR && winOK;
-
-        /* extra CSS so the button group is always visible */
         const style = `
-      <style>
-        #jspsych-html-button-response-btngroup{
-          display:flex !important; justify-content:center !important;
-          gap:24px; margin-top:50px;
-        }
-        .jspsych-content-wrapper{ min-height:650px; }
-        .jspsych-btn{ font-size:18px;padding:10px 32px; }
-      </style>`;
+        <style>
+          /* Prevent scrolling */
+          html, body {
+            height: 100%;
+            overflow: hidden;
+          }
 
+          /* Keep content visible and non-overlapping */
+          .jspsych-content {
+            padding-bottom: 120px !important; /* Reserve space for fixed button group */
+          }
+
+          /* Allow full height usage without forcing scrollbars */
+          .jspsych-content-wrapper {
+            height: 100vh;
+            min-height: 0;
+          }
+
+          /* PASS/FAIL message styling */
+          #card-msg {
+            min-height: 28px;       /* Prevent layout shift when FAIL text appears */
+            margin-top: 8px;
+            position: relative;
+            top: -8px;              /* Move PASS/FAIL line slightly upward */
+            font-size: 18px;
+            font-weight: 700;
+            text-align: center;     /* Center horizontally */
+          }
+
+          /* Slider area (optional spacing improvement) */
+          #card-slider {
+            margin-bottom: 20px;    /* Keeps space above fixed button area */
+          }
+
+          /* Fixed, centered button group at the bottom */
+          #jspsych-html-button-response-btngroup {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex !important;
+            justify-content: center !important;
+            gap: 24px;
+            margin: 0;
+            z-index: 10;
+            width: auto;
+          }
+
+          /* General button styling */
+          .jspsych-btn {
+            font-size: 18px;
+            padding: 10px 32px;
+          }
+
+          /* Optional fine-tune: nudge Continue button a little higher */
+          .jspsych-btn:nth-child(3) {
+            transform: translateY(-4px);
+          }
+        </style>
+          `;
         let html = style + `
-      <h2 style="text-align:center;margin-top:10px;">Display Verification</h2>
+          <h2 style="text-align:center;margin-top:10px;">Display Verification</h2>
 
-      <table style="margin:0 auto;font-size:18px;line-height:1.4;">
-        <tr><td><b>Device resolution&nbsp;(physical)</b></td>
-            <td>${swPhy} × ${shPhy}&nbsp;px</td></tr>
-        <tr><td><b>Browser viewport&nbsp;(CSS)</b></td>
-            <td>${vw} × ${vh}&nbsp;px</td></tr>
-        <tr><td><b>OS scaling factor</b></td>
-            <td>${dpr.toFixed(2)}&nbsp;(~${Math.round(dpr * 100)}%)</td></tr>
-      </table>
+          <table style="margin:0 auto;font-size:18px;line-height:1.4;">
+            <tr><td><b>Device resolution&nbsp;(physical)</b></td>
+                <td>${swPhy} × ${shPhy}&nbsp;px</td></tr>
+            <tr><td><b>Browser viewport&nbsp;(CSS)</b></td>
+                <td>${vw} × ${vh}&nbsp;px</td></tr>
+            <tr><td><b>OS scaling factor</b></td>
+                <td>${dpr.toFixed(2)}&nbsp;(~${Math.round(dpr * 100)}%)</td></tr>
+          </table>
 
-      <p style="text-align:center;font-size:22px;margin:20px 0;">
-        Resolution&nbsp;status&nbsp;:&nbsp;${badge(passAll)}
-      </p>
+          <p style="text-align:center;font-size:22px;margin:20px 0;">
+            Resolution&nbsp;status&nbsp;:&nbsp;${badge(passAll)}
+          </p>
 
-      <p style="max-width:800px;margin:0 auto 40px;font-size:17px;text-align:left;">
-        We require a 1920 × 1080 monitor (≈ 15.6″) at
-        <b>125 % OS scaling</b> and <b>100 % browser zoom</b>.
-      </p>`;
+          <p style="max-width:800px;margin:0 auto 40px;font-size:17px;text-align:left;">
+            We require a 1920 × 1080 monitor (≈ 15.6″) at
+            <b>125 % OS scaling</b> and <b>100 % browser zoom</b>.
+          </p>`;
 
         /* extra credit-card calibration only if resolution passes */
         if (passAll) {
@@ -539,16 +743,13 @@
           <p id="card-msg" style="margin-top:12px;font-size:18px;font-weight:700;"></p>
         </div>`;
         }
-
         return html;
       },
 
       /* ------------------------------------------------------------------------ */
       on_load: () => {
         installZoomBlocker();
-
         /* re-eval pass/fail for logic here */
-        /* re‑eval pass/fail for logic here */
         const dpr = window.devicePixelRatio || 1,
           swCSS = screen.width,
           shCSS = screen.height,
@@ -565,7 +766,6 @@
         const [reBtn, quitBtn, contBtn] =
           document.querySelectorAll('.jspsych-btn');
 
-        /* Quit always disqualifies */
         quitBtn.onclick = () => showDisqualifyPage();
 
         /* ---------------- RESOLUTION FAIL ---------------- */
@@ -640,13 +840,13 @@
          *      (“Re-check”, by construction in choices[])
          * -------------------------------------------------- */
         if (data.response === 0) {
-          recheckAttempts++;          // count this attempt
+          recheckAttempts++;
 
           /* after the 2nd Re-check → treat as an outright fail
              (same outcome as pressing “Quit”) */
           if (recheckAttempts >= 2) {
-            showDisqualifyPage();     // send them to the fail page
-            return;                   // skip storing more data
+            showDisqualifyPage();
+            return;
           }
         }
 
@@ -710,7 +910,6 @@
 
   <!-- ================= 3) Live ZOOM-/RES-GUARD (auto-resume, hard pause) ================ -->
   <script>
-    /* create once */
     let guardStarted = false;
 
     function startZoomGuard() {
@@ -721,7 +920,7 @@
       function ok() {
         const dpr = window.devicePixelRatio || 1;
 
-        /* browser zoom   (≈100 % ±5 %) */
+        /* browser zoom   (≈100 % ±5 %) */
         const zoomPct = (dpr / 1.25) * 100;
         const zoomOK = zoomPct >= 95 && zoomPct <= 105;
 
@@ -741,7 +940,7 @@
       function show() {
         if (overlay) return;
         overlay = document.createElement('div');
-        overlay.id = 'zoom-overlay';   /* uses existing grey+centered CSS */
+        overlay.id = 'zoom-overlay';
         overlay.innerHTML = `
         <div class="prompt-box">
           <h3>Display settings changed</h3>
@@ -782,7 +981,7 @@
       window.addEventListener('resize', watch);
       window.addEventListener('orientationchange', watch);
       setInterval(watch, 500);
-      watch();                 /* initial check */
+      watch();
     }
   </script>
 
@@ -793,7 +992,6 @@
       func: () => startZoomGuard()
     };
   </script>
-
 
   <script>
     /*************** 4) Demo Instructions Page ***************/
@@ -856,40 +1054,38 @@
     var demoVideoTrial = {
       type: jsPsychHtmlButtonResponse,
       stimulus: `
-    <h2 style="text-align:center; margin-top:10px;">Instructional Video</h2>
-    <div style="max-width:1200px; margin:0 auto; text-align:center;">
-      <video id="demo-video"
-             class="no-progress"              
-             controls
-             controlsList="nodownload noremoteplayback"
-             style="width:100%; height:auto; margin-top:10px;">
-        <source src="data/Demo Video.mp4" type="video/mp4">
-        Your browser does not support the video tag.
-      </video>
-    </div>
-    <p style="margin-top:20px; text-align:center;">
-      Please watch the entire video before proceed.
-    </p>
-  `,
+        <h2 style="text-align:center; margin-top:10px;">Instructional Video</h2>
+        <div style="max-width:1200px; margin:0 auto; text-align:center;">
+          <video id="demo-video"
+                class="no-progress"              
+                controls
+                controlsList="nodownload noremoteplayback"
+                style="width:100%; height:auto; margin-top:10px;">
+            <source src="data/Demo Video.mp4" type="video/mp4">
+            Your browser does not support the video tag.
+          </video>
+        </div>
+        <p style="margin-top:20px; text-align:center;">
+          Please watch the entire video before proceed.
+        </p>
+      `,
       choices: ['Continue'],
       on_load: function () {
         const btn = document.querySelector('.jspsych-btn');
-        btn.disabled = true;
+        btn.disabled = false;
 
         const video = document.getElementById('demo-video');
         let playStart = null;
-        demoVideoWatchTime = 0;  // reset accumulator
+        demoVideoWatchTime = 0; 
 
         // When video starts or resumes playing
         video.addEventListener('play', () => {
-          // record when this play segment began
           playStart = Date.now();
         });
 
         // When video is paused or user seeks
         function accumulate() {
           if (playStart !== null) {
-            // add the elapsed seconds since playStart
             demoVideoWatchTime += (Date.now() - playStart) / 1000;
             playStart = null;
           }
@@ -899,15 +1095,14 @@
 
         // When video ends naturally
         video.addEventListener('ended', () => {
-          accumulate();         // add the last segment
-          // demoVideoWatchTime now holds total watched seconds
+          accumulate();
           btn.disabled = false;
           console.log('Total watched (s):', demoVideoWatchTime);
         });
 
         // Also catch the Continue click if they skip before ending
         btn.addEventListener('click', () => {
-          accumulate();         // add any current segment
+          accumulate();
           console.log('Final watched (s):', demoVideoWatchTime);
         });
       }
@@ -1003,14 +1198,12 @@
           if (!shiftImg) return;
           shiftImg.style.visibility = "hidden";
 
-          // In-between transition: 1000ms → 500ms
           pauseAwareTimeout(function () {
             currentIndex++;
             shiftImg.src = demoImages[currentIndex].src;
             shiftImg.style.visibility = "visible";
             btn.disabled = false;
             btn.style.opacity = "1";
-            // Blink/update freq: 3000ms → 2000ms
             pauseAwareTimeout(nextImage, 2000);
           }, 500);
         }
@@ -1054,19 +1247,20 @@
             <div id="demo-content" style="display:flex; justify-content:center; align-items:center;">
               <div style="margin:5px; text-align:center;">
                 <img id="ref-image" src="${demoImages[0].src}" class="demo-image">
-                <br><span>Reference Image</span>
+                <br><span class="caption">Reference Image</span>
               </div>
               <div style="margin:5px; text-align:center;">
                 <img id="shift-image" src="${demoImages[currentIndex].src}" class="demo-image" style="visibility:visible;">
-                <br><span>Shifted Image</span>
+                <br><span class="caption">Shifted Image</span>
               </div>
             </div>
           `;
+          document.getElementById('demo-content').classList.add('fullbleed');
+          edgeLayout('ref-image', 'shift-image', 'demo-content', 0.9);
           document.getElementById("yes-button-container").style.display = "block";
           btn.style.display = "inline-block";
           btn.disabled = false;
           btn.style.opacity = "1";
-          // First update: 3000ms → 2000ms  
           pauseAwareTimeout(nextImage, 2000);
         }
 
@@ -1078,7 +1272,7 @@
           var shiftImg = document.getElementById("shift-image");
           if (shiftImg) {
             var parsed = parseShiftFromFilename(shiftImg.src);
-            window.demoPixelShift = parsed.shift;      // ← store demo result
+            window.demoPixelShift = parsed.shift;
             yesClickEvents.push({
               phase: "demo",
               direction: parsed.direction,
@@ -1089,7 +1283,6 @@
           finishTrial();
         });
         /* ---------------------------------------------------- */
-
         function finishTrial() {
           var btn = document.querySelector(".jspsych-btn");
           if (btn && btn.parentNode) {
@@ -1184,7 +1377,7 @@
         btn.style.display = 'none';
 
         /* ========== progress ring ========== */
-        const properties = groups[window.selectedGroupKey];     // e.g. ["Center_125%_Plain"]
+        const properties = groups[window.selectedGroupKey];
         const totalSets = properties.length * 4 * SCALES.length;
         document.getElementById('progress-circle').style.display = 'block';
         window.completedSets = 0;
@@ -1212,7 +1405,7 @@
           <p style="font-size:20px;">This set has no link to prior set</b></p>
         </div>`;
           document.getElementById('yes-button-container').style.display = 'none';
-          pauseAwareTimeout(afterCb, 3000);          // wait 3 s, then continue
+          pauseAwareTimeout(afterCb, 3000);
         }
 
         /* ──────────────────────────────────────────────
@@ -1243,7 +1436,6 @@
 
             function runExperimentForProperty(propIdx) {
               if (propIdx >= properties.length) {
-                /* done with this scale –> move to next one */
                 return runExperimentForScale(scaleIdx + 1);
               }
 
@@ -1256,7 +1448,6 @@
                 currentScale,
                 (phaseResults, filenames) => {
 
-                  /* one-time stimulus-size capture for this scale */
                   const sizeKeyW = `stim_${currentScale}_width`;
                   if (!window.stimSizesByScale[sizeKeyW]) {
                     const firstURL = 'https://lasvientuexperimentdata.s3.ap-southeast-1.amazonaws.com/Rendered+Images/' +
@@ -1268,8 +1459,6 @@
                         Math.round(img.naturalHeight * currentScale);
                     });
                   }
-
-                  /* record the full result of this (property × scale) run */
                   experimentResults.push({
                     scale: currentScale,
                     property: `${property}_${currentScale}`,
@@ -1277,12 +1466,10 @@
                     filenames
                   });
 
-                  runExperimentForProperty(propIdx + 1);   // next property
+                  runExperimentForProperty(propIdx + 1);
                 }
               ); /* runDirectionalExperiment */
             }
-
-            /* kick off first property */
             runExperimentForProperty(0);
           } /* runScaleBody */
         } /* runExperimentForScale */
@@ -1365,17 +1552,12 @@
           const imgURL = imgEl.src;
           const parsed = parseShiftFromFilename(imgURL);
 
-          /* --------------- NEW --------------- */
-          const propScaled = `${propertyName}_${scaleFactor}`;  // e.g. Center_125%_Plain_0.75
-          /* ----------------------------------- */
+          const propScaled = `${propertyName}_${scaleFactor}`;
 
           yesClickEvents.push({
             phase: 'actual',
             group: window.selectedGroupKey,
-
-            /* combined property */
             property: propScaled,
-
             direction: parsed.direction,
             shift: parsed.shift,
             filename: imgURL,
@@ -1386,8 +1568,6 @@
             filename: imgURL,
             pixelShift: parsed.shift,
             direction: parsed.direction,
-
-            /* same fields for per-phase summary */
             property: propScaled,
           };
 
@@ -1421,7 +1601,7 @@
         const startPhase = () => {
           imgIdx = 0;
           highestCached = Math.min(INITIAL_CACHE, phases[phaseIdx].filenames.length - 1);
-          cacheIndices([...Array(highestCached + 1).keys()]);   // pre-cache first 6
+          cacheIndices([...Array(highestCached + 1).keys()]);
 
           document.getElementById('yes-button-container').style.display = 'block';
           btn.style.display = 'inline-block';
@@ -1430,49 +1610,86 @@
           showFrame();
         };
 
-        /* ----------  SHOW ONE FRAME  ---------- */
         const showFrame = () => {
           const phase = phases[phaseIdx];
           const fname = phase.filenames[imgIdx];
 
-          /* ── build HTML ───────────────────────────────────── */
           container.innerHTML = `
-    <div id="exp-header" style="text-align:center;margin-top:10px;">
-      <h3>Saliency object will move
-        <span style="font-size:1.5em;text-decoration:underline;">${phase.label}</span>
-      </h3>
-    </div>
+            <div id="exp-header" style="text-align:center;margin-top:10px;">
+              <h3>Saliency object will move
+                <span style="font-size:1.5em;text-decoration:underline;">${phase.label}</span>
+              </h3>
+            </div>
 
-    <div id="exp-content"
-         style="display:flex;justify-content:center;align-items:center;">
-      <div style="margin:5px;text-align:center;">
-        <img id="exp-ref-image"
-             src="${baseURL + encodeURIComponent(phase.filenames[0])}"
-             class="demo-image"
-             style="transform:scale(${scaleFactor});transform-origin:center;">
-        <br><span>Reference Image</span>
-      </div>
-      <div style="margin:5px;text-align:center;">
-        <img id="exp-shift-image"
-             src="${baseURL + encodeURIComponent(fname)}"
-             class="demo-image"
-             style="visibility:visible;transform:scale(${scaleFactor});transform-origin:center;">
-        <br><span>Shifted Image</span>
-      </div>
-    </div>`;
+            <div id="exp-content" style="display:flex;justify-content:center;align-items:center;width:100%;">
+              <div style="text-align:center;">
+                <img id="exp-ref-image"
+                    src="${baseURL + encodeURIComponent(phase.filenames[0])}"
+                    class="demo-image">
+                <br><span class="caption">Reference Image</span>
+              </div>
+              <div style="text-align:center;">
+                <img id="exp-shift-image"
+                    src="${baseURL + encodeURIComponent(fname)}"
+                    class="demo-image"
+                    style="visibility:visible;">
+                <br><span class="caption">Shifted Image</span>
+              </div>
+            </div>
+          `;
 
-          /* ── 1st time for this scale?  Store displayed size (CSS px) ── */
-          const wKey = `stim_${scaleFactor}_width`;
-          if (!window.stimSizesByScale[wKey]) {
-            /* getBoundingClientRect() INCLUDES transforms → true displayed size */
-            const rect = document
-              .getElementById('exp-ref-image')
-              .getBoundingClientRect();
-            window.stimSizesByScale[wKey] = Math.round(rect.width);
-            window.stimSizesByScale[`stim_${scaleFactor}_height`] = Math.round(rect.height);
+          // Make the jsPsych wrapper fill width but avoid horizontal scroll
+          const wrapEl = document.querySelector('.jspsych-content-wrapper');
+          if (wrapEl) {
+            wrapEl.style.maxWidth = '100%';
+            wrapEl.style.width = '100%';
+            wrapEl.style.overflowX = 'hidden';
+            wrapEl.style.boxSizing = 'border-box';
           }
 
-          /* ── enable button & schedule next frame ── */
+          // Full-bleed strictly for 0.9 only
+          const expContentEl = document.getElementById('exp-content');
+          if (expContentEl) {
+            if (scaleFactor === 0.9) expContentEl.classList.add('fullbleed');
+            else expContentEl.classList.remove('fullbleed');
+          }
+
+          // Store displayed CSS size for this scale (once)
+          const wKey = `stim_${scaleFactor}_width`;
+          if (!window.stimSizesByScale[wKey]) {
+            requestAnimationFrame(() => {
+              const rect = document.getElementById('exp-ref-image').getBoundingClientRect();
+              window.stimSizesByScale[wKey] = Math.round(rect.width);
+              window.stimSizesByScale[`stim_${scaleFactor}_height`] = Math.round(rect.height);
+            });
+          }
+
+          // 0.9 = edges; 0.75 and 0.6 use the 0.9-measured gap,
+          // but ONLY 0.75 gets an extra measurement-based nudge.
+          if (scaleFactor === 0.9) {
+            edgeLayout('exp-ref-image', 'exp-shift-image', 'exp-content', scaleFactor, { mode: 'edges' });
+            if (typeof window.baseInterImageGapPx !== 'number') {
+              measureBaseGapWhenReady();
+            }
+          } else if (scaleFactor === 0.75) {
+            whenBaseGapKnown((gap) => {
+              edgeLayout('exp-ref-image', 'exp-shift-image', 'exp-content', scaleFactor, {
+                mode: 'gap',
+                gapPx: gap
+              });
+              nudgeGapToTarget('exp-content', gap);
+            });
+          } else if (scaleFactor === 0.6) {
+            whenBaseGapKnown((gap) => {
+              edgeLayout('exp-ref-image', 'exp-shift-image', 'exp-content', scaleFactor, {
+                mode: 'gap',
+                gapPx: gap
+              });
+              nudgeGapToTarget('exp-content', gap);
+            });
+          }
+
+          // Enable YES and schedule next frame
           btn.disabled = false;
           btn.style.opacity = '1';
           pauseAwareTimeout(advanceFrame, 2000);
@@ -1492,7 +1709,6 @@
             pauseAwareTimeout(() => {
               imgIdx++;
 
-              /* prefetch just-in-time */
               if (imgIdx + PREFETCH_BORDER > highestCached &&
                 highestCached < phase.filenames.length - 1) {
                 const start = highestCached + 1;
@@ -1522,15 +1738,13 @@
             callback(phaseResults, phases.map(p => p.filenames));
           }
         };
-
-        /* kick off the countdown for first phase */
         startPhaseCountdown();
       })
         .catch(err => {
           container.innerHTML = `<p>Error fetching filenames: ${err}</p>`;
         });
     } /* runDirectionalExperiment */
-   /* on_load */;
+  /* on_load */;
   </script>
 
   <script>
@@ -1565,7 +1779,7 @@
           yesClicks: yesClickEvents,
           trialSummary: trialSummary,
           demoVideoWatchTime: demoVideoWatchTime,
-          demoPixelShift: window.demoPixelShift ?? null,    // ← NEW FIELD
+          demoPixelShift: window.demoPixelShift ?? null,
           ...stimSizesByScale
         };
         /* ---------------------------------------------------- */
@@ -1602,13 +1816,10 @@
       },
       choices: ['Finish'],
 
-      /* NEW – close the tab/window when Finish is pressed */
       on_finish: function () {
-        /* give the DOM a single animation frame so the click feels “acknowledged” */
         requestAnimationFrame(() => {
-          /* Work around browsers that block window.close() on non-scripted windows */
-          window.open('', '_self');   // make the current tab “script-opened”
-          window.close();             // and close it
+          window.open('', '_self');
+          window.close();
         });
       }
     };
